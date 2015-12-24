@@ -10,6 +10,13 @@ To build these projects you will need both `make` and `qmake` installed.
 
 The buils/run scripts use the [ccze](https://github.com/cornet/ccze) (`ccze`) utility to color the output of the build/run process.
 
+## Setup
+
+After cloning initially from `https://github.com/Towethousand/3D-Grid-Shadow-Casting.git` make sure to run:
+
+    git submodule init
+    git submodule update
+
 ## Building
 
 You can build this project with the `compile.sh` script. For build options, see `./compile.sh -h`.

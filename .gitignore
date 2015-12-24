@@ -1,0 +1,9 @@
+*.o
+*.pro.user*
+Makefile
+*~
+*.autosave
+log.txt
+*.pyc
+build/
+build-debug/

@@ -72,7 +72,7 @@ fi
 
 if [ ! -L "game/assets" ]; then
     prim "Creating symbolic link for assets folder..."
-    ln -s ../game/assets game/assets
+    ln -s $PWD/../game/assets game/assets
 fi
 prim "Building project..."
 make -j8 2>&1 | ccze -A

@@ -16,8 +16,11 @@ class Scene : public GameObject {
 		void update(float deltaTime) override;
 		void draw() const override;
 
+		void updateView(float deltaTime);
+
 		Camera* camera = nullptr;
 		float zoom = 10.0f;
+		vec3f pos = vec3f(0.0f);
 };
 
 #endif //SCENE_HPP

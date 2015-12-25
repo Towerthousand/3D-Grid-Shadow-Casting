@@ -22,8 +22,6 @@ Scene::Scene() {
 	p->addTo(this);
 
 	camera = new Camera("mainCamera", vec3f(0, 0, -10));
-	float ratio = 16.0f/9.0f;
-	camera->projection = glm::ortho(-zoom*ratio, zoom*ratio, -zoom, zoom, -100.0f, 100.0f);
 	camera->addTo(this);
 
 	Grid* g = new Grid();
@@ -33,8 +31,21 @@ Scene::Scene() {
 Scene::~Scene() {
 }
 
+void Scene::updateView(float deltaTime) {
+	float speed = 1.0f;
+	if(Keyboard::pressed(Keyboard::E)) zoom -= zoom*0.9*deltaTime;
+	if(Keyboard::pressed(Keyboard::Q)) zoom += zoom*0.9*deltaTime;
+	if(Keyboard::pressed(Keyboard::W)) pos.y += zoom*deltaTime*speed;
+	if(Keyboard::pressed(Keyboard::A)) pos.x -= zoom*deltaTime*speed;
+	if(Keyboard::pressed(Keyboard::S)) pos.y -= zoom*deltaTime*speed;
+	if(Keyboard::pressed(Keyboard::D)) pos.x += zoom*deltaTime*speed;
+	float ratio = float(Window::getInstance()->getSize().x)/float(Window::getInstance()->getSize().y);
+	camera->projection = glm::ortho(-zoom*ratio, zoom*ratio, -zoom, zoom, -100.0f, 100.0f);
+	camera->pos = pos;
+}
+
 void Scene::update(float deltaTime) {
-	(void) deltaTime;
+	updateView(deltaTime);
 	if(Keyboard::justPressed(Keyboard::Escape)) getGame()->isRunning = false;
 }
 

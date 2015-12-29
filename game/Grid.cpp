@@ -20,10 +20,8 @@ std::pair<vec2f, float> Grid::getAngle(int x, int y) const {
 		return std::make_pair(vec2f(0.0f, 1.0f), 0.0f);
 	vec2f center = vec2f(x, y)+0.5f;
 	vec2f orig = vec2f(origin)+0.5f;
-	float angle = glm::atan((sqrt(2.0f)*0.5f)/glm::length(center-orig));
-	if(x == 10 && y == 11) {
-		VBE_LOG("center:" << center << " radians:" << angle << " degrees:" << angle*(180.0f/M_PI) << " orig:" << orig << " len:" << glm::length(center-orig));
-	}
+	float ballRadius = sqrt(2.0f)*0.5f;
+	float angle = glm::atan(ballRadius/(glm::length(center-orig)-ballRadius));
 	return std::make_pair(glm::normalize(center-orig), angle);
 }
 

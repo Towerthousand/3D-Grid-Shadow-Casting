@@ -3,7 +3,8 @@
 #SCRIPT CONFIG
 PROJECT_FILE_RELATIVE_PATH="../3D-Grid-Shadow-Casting.pro"
 
-set -e
+set -e 
+set -o pipefail
 bold=$(tput bold)
 normal=$(tput sgr0)
 

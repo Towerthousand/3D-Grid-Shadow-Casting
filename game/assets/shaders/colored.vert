@@ -4,6 +4,8 @@ uniform mat4 MVP;
 
 in vec3 a_position;
 
+out vec2 v_texCoord;
+
 void main() {
 	gl_Position = MVP * vec4(a_position, 1);
 }

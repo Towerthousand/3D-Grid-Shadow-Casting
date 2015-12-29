@@ -17,11 +17,15 @@ INCLUDEPATH += .
 SOURCES += \
     main.cpp \
     Scene.cpp \
-    Grid.cpp
+    Grid.cpp \
+    Manager.cpp \
+    Angle.cpp
 
 HEADERS += \
     commons.hpp \
     Scene.hpp \
-    Grid.cpp
+    Grid.hpp \
+    Manager.hpp \
+    Angle.hpp
 
 # OTHER_FILES += \

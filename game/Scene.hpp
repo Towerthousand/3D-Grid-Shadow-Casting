@@ -11,6 +11,9 @@ class Scene : public GameObject {
 		const Camera* getCamera() const {
 			return camera;
 		}
+		float getZoom() const {
+			return zoom;
+		}
 
 	private:
 		void update(float deltaTime) override;
@@ -19,7 +22,7 @@ class Scene : public GameObject {
 		void updateView(float deltaTime);
 
 		Camera* camera = nullptr;
-		float zoom = 10.0f;
+		float zoom = 20.0f;
 		vec3f pos = vec3f(0.0f);
 };
 

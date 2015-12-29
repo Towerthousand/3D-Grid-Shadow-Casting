@@ -1,12 +1,22 @@
 #include "Scene.hpp"
 #include "Grid.hpp"
+#include "Manager.hpp"
 
 Scene::Scene() {
 	this->setName("SCENE");
 
 	Window::getInstance()->setTitle("VoxelGame");
+	Mouse::setCursorVisible(true);
 	Mouse::setGrab(false);
-	Mouse::setRelativeMode(true);
+
+	ProgramManager.add("textured", ShaderProgram(
+		Storage::openAsset("shaders/textured.vert"),
+		Storage::openAsset("shaders/textured.frag")
+	));
+	ProgramManager.add("colored", ShaderProgram(
+		Storage::openAsset("shaders/colored.vert"),
+		Storage::openAsset("shaders/colored.frag")
+	));
 
 	//GL stuff..:
 	GL_ASSERT(glClearColor(0, 0, 0, 1));
@@ -21,7 +31,7 @@ Scene::Scene() {
 	Profiler* p = new Profiler();
 	p->addTo(this);
 
-	camera = new Camera("mainCamera", vec3f(0, 0, -10));
+	camera = new Camera("mainCamera");
 	camera->addTo(this);
 
 	Grid* g = new Grid();
@@ -35,6 +45,7 @@ void Scene::updateView(float deltaTime) {
 	float speed = 1.0f;
 	if(Keyboard::pressed(Keyboard::E)) zoom -= zoom*0.9*deltaTime;
 	if(Keyboard::pressed(Keyboard::Q)) zoom += zoom*0.9*deltaTime;
+	zoom = glm::clamp(zoom, 1.0f, 15.0f);
 	if(Keyboard::pressed(Keyboard::W)) pos.y += zoom*deltaTime*speed;
 	if(Keyboard::pressed(Keyboard::A)) pos.x -= zoom*deltaTime*speed;
 	if(Keyboard::pressed(Keyboard::S)) pos.y -= zoom*deltaTime*speed;

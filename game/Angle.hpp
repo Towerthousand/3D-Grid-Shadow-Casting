@@ -3,14 +3,25 @@
 
 #include "commons.hpp"
 
+struct AngleDef{
+	vec2f dir;
+	float halfAngle;
+};
+
 class Angle : public GameObject {
 	public:
 		Angle();
 		~Angle();
 
+		static AngleDef angleUnion(const Angle* a, const Angle* b);
+		static AngleDef angleIntersection(const Angle* a, const Angle* b);
+
+		void set(const AngleDef& a) {
+			set(a.dir, a.halfAngle);
+		}
 		void set(vec2f dir, float halfAngle);
-		vec2f getDir() { return dir; }
-		float getHalfAngle() { return half; }
+		vec2f getDir() const { return dir; }
+		float getHalfAngle() const { return half; }
 
 		vec3f color = vec3f(0.0f, 1.0f, 0.0f);
 		vec3f center = vec3f(0.0f);

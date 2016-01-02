@@ -15,7 +15,7 @@ class Grid : public GameObject {
 			Angle* angle = nullptr;
 		};
 
-		std::pair<vec2f, float>  getAngle(int x, int y) const;
+		AngleDef getAngle(int x, int y) const;
 
 		void resetCells();
 		void initGridTex();
@@ -38,6 +38,9 @@ class Grid : public GameObject {
 		mutable Mesh lines;
 
 		vec2i origin = vec2i(10,10);
+		Angle* test1 = nullptr;
+		Angle* test2 = nullptr;
+		Angle* test3 = nullptr;
 };
 
 #endif //GRID_HPP

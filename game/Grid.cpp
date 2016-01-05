@@ -212,10 +212,10 @@ void Grid::update(float deltaTime) {
 	if(Keyboard::justPressed(Keyboard::N)) state = (state+1)%2;
 	switch(state) {
 		case 0:
-			test3->set(Angle::angleUnion(test2, test1));
+			test3->set(Angle::angleUnion(test1, test2));
 			break;
 		case 1:
-			test3->set(Angle::angleIntersection(test2, test1));
+			test3->set(Angle::angleIntersection(test1, test2));
 			break;
 	}
 }

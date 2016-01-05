@@ -15,21 +15,23 @@ Grid::Grid() {
 	test1 = new Angle();
 	test1->addTo(this);
 	test1->doDraw = true;
-	test1->color = vec3f(0.0f, 1.0f, 1.0f);
+	test1->magnitude = 1.0f;
+	test1->color = vec3f(0.0f, 0.0f, 1.0f);
 
 	test2 = new Angle();
 	test2->addTo(this);
 	test2->doDraw = true;
-	test2->color = vec3f(0.0f, 1.0f, 1.0f);
+	test2->magnitude = 1.0f;
+	test2->color = vec3f(0.0f, 0.0f, 1.0f);
 
 	test3 = new Angle();
 	test3->addTo(this);
 	test3->doDraw = true;
-	test3->color = vec3f(0.0f, 0.0f, 1.0f);
+	test3->color = vec3f(0.0f, 1.0f, 1.0f);
 
-	test1->set(glm::normalize(vec2f(-1.0f, 1.0f)), M_PI/6.0f);
-	test2->set(glm::normalize(vec2f(1.0f)), M_PI/6.0f);
-	test3->set(vec2f(0.0f, 1.0f), M_PI/6.0f);
+	test1->set(glm::normalize(vec2f(-1.0f, 1.0f)), glm::tan(M_PI/6.0f), false);
+	test2->set(glm::normalize(vec2f(1.0f)), glm::tan(M_PI/6.0f), false);
+	test3->set(vec2f(0.0f, 1.0f), glm::tan(M_PI/6.0f), false);
 }
 
 Grid::~Grid() {
@@ -37,12 +39,12 @@ Grid::~Grid() {
 
 AngleDef Grid::getAngle(int x, int y) const {
 	if(vec2i(x, y) == origin)
-		return {vec2f(0.0f, 1.0f), 0.0f};
+		return {vec2f(0.0f, 1.0f), 0.0f, true};
 	vec2f center = vec2f(x, y)+0.5f;
 	vec2f orig = vec2f(origin)+0.5f;
 	float ballRadius = sqrt(2.0f)*0.5f;
-	float angle = glm::atan(ballRadius/(glm::length(center-orig)-ballRadius));
-	return {glm::normalize(center-orig), angle};
+	float angle = ballRadius/(glm::length(center-orig)-ballRadius);
+	return {glm::normalize(center-orig), angle, true};
 }
 
 void Grid::resetCells() {
@@ -189,27 +191,33 @@ void Grid::update(float deltaTime) {
 	static bool spin = false;
 	if(Keyboard::justPressed(Keyboard::Space)) spin = !spin;
 	if(spin) {
-		test1->set(glm::rotate(test1->getDir(), .5f*deltaTime), test1->getHalfAngle());
-		test2->set(glm::rotate(test2->getDir(), .5f*deltaTime), test2->getHalfAngle());
+		test1->set(glm::rotate(test1->getDir(), .5f*deltaTime), test1->getHalfAngle(), false);
+		test2->set(glm::rotate(test2->getDir(), .5f*deltaTime), test2->getHalfAngle(), false);
 	}
 	if(Keyboard::pressed(Keyboard::R))
-		test2->set(test2->getDir(), glm::min(test2->getHalfAngle()+0.001f, float(M_PI*0.999999f)));
+		test2->set(test2->getDir(), glm::min(test2->getHalfAngle()+0.001f, float(M_PI*0.999999f)), false);
 	if(Keyboard::pressed(Keyboard::F))
-		test2->set(test2->getDir(), glm::max(test2->getHalfAngle()-0.001f, 0.01f));
+		test2->set(test2->getDir(), glm::max(test2->getHalfAngle()-0.001f, 0.01f), false);
 	if(Keyboard::pressed(Keyboard::V))
-		test2->set(glm::rotate(test2->getDir(), 1.0f*deltaTime), test2->getHalfAngle());
+		test2->set(glm::rotate(test2->getDir(), 1.0f*deltaTime), test2->getHalfAngle(), false);
 	if(Keyboard::pressed(Keyboard::B))
-		test2->set(glm::rotate(test2->getDir(), -1.0f*deltaTime), test2->getHalfAngle());
+		test2->set(glm::rotate(test2->getDir(), -1.0f*deltaTime), test2->getHalfAngle(), false);
 	if(Keyboard::justPressed(Keyboard::Z))
 		test1->doDraw = !test1->doDraw;
 	if(Keyboard::justPressed(Keyboard::X))
 		test2->doDraw = !test2->doDraw;
 	if(Keyboard::justPressed(Keyboard::C))
 		test3->doDraw = !test3->doDraw;
-	static bool inter = false;
-	if(Keyboard::justPressed(Keyboard::N)) inter = !inter;
-	if(!inter) test3->set(Angle::angleUnion(test2, test1));
-	else test3->set(Angle::angleIntersection(test1, test2));
+	static int state = 0;
+	if(Keyboard::justPressed(Keyboard::N)) state = (state+1)%2;
+	switch(state) {
+		case 0:
+			test3->set(Angle::angleUnion(test2, test1));
+			break;
+		case 1:
+			test3->set(Angle::angleIntersection(test2, test1));
+			break;
+	}
 }
 
 void Grid::draw() const {

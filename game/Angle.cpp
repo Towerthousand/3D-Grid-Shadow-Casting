@@ -21,71 +21,81 @@ float modAngle(float angle) {
 	return angle;
 }
 
+Angle::AngleOverlap Angle::contains(const vec2f& dir, float half, bool full) const {
+	if(full) return this->full ? CONTAINS : PARTIAL;
+	if(this->full) return CONTAINS;
+	vec3f dir1 = vec3f(dir, 0.0f);
+	vec3f dir2 = vec3f(this->dir, 0.0f);
+	vec3f side = glm::cross(glm::normalize(glm::cross(dir1, dir2)), dir1)*half;
+	vec3f p1 = dir1-side;
+	vec3f p2 = dir1+side;
+	float l1 = glm::dot(p1, dir2);
+	float l2 = glm::dot(p2, dir2);
+	float r1 = glm::length(p1-dir2*l1);
+	float r2 = glm::length(p2-dir2*l2);
+	int result = 0;
+	if(l1 > 0.0f && r1/l1 < this->half) result++;
+	if(l2 > 0.0f && r2/l2 < this->half) result++;
+	return static_cast<AngleOverlap>(result);
+};
+
 AngleDef Angle::angleUnion(const Angle* a, const Angle* b) {
-	float diff = glm::acos(glm::dot(a->getDir(),b->getDir()));
-	if(glm::isnan(diff)) diff = 0;
-	if(a->getHalfAngle() >= diff+b->getHalfAngle()) // a contains b
-		return {a->getDir(), a->getHalfAngle()};
-	else if(b->getHalfAngle() >= diff+a->getHalfAngle()) // b contains a
-		return {b->getDir(), b->getHalfAngle()};
-	// general case
-	float radA = glm::atan(a->getDir().x, a->getDir().y);
-	float radB = glm::atan(b->getDir().x, b->getDir().y);
-	if(glm::epsilonNotEqual(modAngle(radA + diff*0.5f), modAngle(radB - diff*0.5f), 0.0001f)) {
-		// a is not the left one.. swap!
-		std::swap(radA, radB);
-		std::swap(a, b);
-	}
-	float angle = glm::min((diff + a->getHalfAngle() + b->getHalfAngle())*0.5f, float(M_PI*0.9999));
-	float start = modAngle(radA - a->getHalfAngle());
-	vec2f dir = vec2f(glm::sin(start+angle), glm::cos(start+angle));
-	return {
-		glm::normalize(dir),
-		angle
-	};
+	if(a->isFull() || b->isFull()) return {{0.0f, 1.0f}, 0.0f, true};
+	AngleOverlap acb = a->contains(b);
+	if(acb  == CONTAINS) return {a->getDir(), a->getHalfAngle(), false};
+	if(acb == PARTIAL && b->contains(a) == CONTAINS) return {b->getDir(), b->getHalfAngle(), false};
+	vec3f dir1 = vec3f(a->getDir(), 0.0f);
+	vec3f dir2 = vec3f(b->getDir(), 0.0f);
+	vec3f cross = glm::normalize(glm::cross(dir1, dir2));
+	vec3f dir3 = glm::normalize(-glm::cross(cross, dir1)*a->getHalfAngle()+dir1);
+	vec3f dir4 = glm::normalize(-glm::cross(-cross, dir2)*b->getHalfAngle()+dir2);
+	vec3f d = glm::normalize(dir3 + dir4);
+	if(glm::dot(dir1+dir2, d) <= 0.0f) return {{0.0f, 1.0f}, 0.0f, true};
+	else return {vec2f(d), glm::length(d-dir3*(1.0f/glm::dot(dir3,d))), false};
 }
 
 AngleDef Angle::angleIntersection(const Angle* a, const Angle* b) {
-	float diff = glm::acos(glm::dot(a->getDir(),b->getDir()));
-	if(glm::isnan(diff)) diff = 0;
-	if(a->getHalfAngle() >= diff+b->getHalfAngle()) // a contains b
-		return {b->getDir(), b->getHalfAngle()};
-	else if(b->getHalfAngle() >= diff+a->getHalfAngle()) // b contains a
-		return {a->getDir(), a->getHalfAngle()};
-	else if(diff > a->getHalfAngle() + b->getHalfAngle()) // no intersection
-		return {vec2f(0.0f, 1.0f), 0.0f};
-	// general case
-	float radA = glm::atan(a->getDir().x, a->getDir().y);
-	float radB = glm::atan(b->getDir().x, b->getDir().y);
-	if(glm::epsilonNotEqual(modAngle(radA + diff*0.5f), modAngle(radB - diff*0.5f), 0.0001f)) {
-		// a is not the left one.. swap!
-		std::swap(radA, radB);
-		std::swap(a, b);
+	AngleOverlap acb = a->contains(b);
+	if(a->isFull() || acb == CONTAINS) return {b->getDir(), b->getHalfAngle(), b->isFull()};
+	else if(acb == PARTIAL) {
+		AngleOverlap bca = b->contains(a);
+		if(b->isFull() || bca == CONTAINS) return {a->getDir(), a->getHalfAngle(), a->isFull()};
 	}
-	float start = modAngle(radB - b->getHalfAngle());
-    float end = modAngle(radA + a->getHalfAngle());
-	if(start > end) start -= 2*M_PI;
-    float angle = (end-start)*0.5f;
-	vec2f dir = vec2f(glm::sin(start+angle), glm::cos(start+angle));
-	return {
-		glm::normalize(dir),
-		angle
-	};
+	else 
+		return {{0.0f, 1.0f}, 0.0f, false};
+	vec3f dir1 = vec3f(a->getDir(), 0.0f);
+	vec3f dir2 = vec3f(b->getDir(), 0.0f);
+	vec3f cross = glm::normalize(glm::cross(dir1, dir2));
+	vec3f dir3 = glm::normalize(glm::cross(cross, dir1)*a->getHalfAngle()+dir1);
+	vec3f dir4 = glm::normalize(glm::cross(-cross, dir2)*b->getHalfAngle()+dir2);
+	vec3f d = glm::normalize(dir3 + dir4);
+	if(glm::dot(dir1+dir2, d) <= 0.0f) return {{0.0f, 1.0f}, 0.0f, true};
+	else return {vec2f(d), glm::length(d-dir3*(1.0f/glm::dot(dir3,d))), false};
 }
 
-void Angle::set(vec2f dir, float halfAngle) {
-	VBE_ASSERT(halfAngle >= 0.0f, "Angle must be positive");
-	VBE_ASSERT(halfAngle <= M_PI, "Angle too big!");
+void Angle::set(vec2f dir, float halfAngle, bool full) {
 	dir = glm::normalize(dir);
 	VBE_ASSERT(!glm::isnan(dir).x && !glm::isnan(dir).y, "setAngle needs a non-zero dir");
 	this->dir = dir;
-	half = halfAngle;
+	if(full) {
+		half = 0.0f;
+		this->full = true;
+	}
+	else {
+		VBE_ASSERT(halfAngle >= 0.0f, "Angle must be positive");
+		VBE_ASSERT(glm::atan(halfAngle) <= M_PI, "Angle too big!");
+		half = halfAngle;
+		this->full = false;
+	}
 	updateVerts();
 }
 
 void Angle::updateVerts() {
-	vec3f p1 = vec3f(glm::rotate(dir, half), 0.0f); // small angle
-	vec3f p2 = vec3f(glm::rotate(dir, -half), 0.0f); // big angle
+	float radHalf = 0.0f;
+	if(full) radHalf = M_PI;
+	else radHalf = glm::atan(half);
+	vec3f p1 = vec3f(glm::rotate(dir, radHalf), 0.0f); // small angle
+	vec3f p2 = vec3f(glm::rotate(dir, -radHalf), 0.0f); // big angle
 	std::vector<vec3f> data;
 	data.push_back(vec3f(0.0f));
 	data.push_back(p1);
@@ -97,7 +107,7 @@ void Angle::updateVerts() {
 
 	data.clear();
 	data.push_back(vec3f(0.0f));
-	for(float current = -half; current < half; current = current+0.1f) {
+	for(float current = -radHalf; current < radHalf; current = current+0.1f) {
 		data.push_back(vec3f(glm::rotate(dir, current), 0.0f));
 	}
 	data.push_back(p1);

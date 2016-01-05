@@ -14,8 +14,7 @@ The buils/run scripts use the [ccze](https://github.com/cornet/ccze) (`ccze`) ut
 
 After cloning initially from `https://github.com/Towethousand/3D-Grid-Shadow-Casting.git` make sure to run:
 
-    git submodule init
-    git submodule update
+    git submodule update --init
 
 ## Building
 

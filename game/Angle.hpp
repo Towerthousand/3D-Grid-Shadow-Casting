@@ -6,9 +6,17 @@
 struct AngleDef{
 	vec2f dir;
 	float halfAngle;
+	bool full;
 };
 
 class Angle : public GameObject {
+	private:
+		enum AngleOverlap {
+			NONE = 0,
+			PARTIAL,
+			CONTAINS
+		};
+
 	public:
 		Angle();
 		~Angle();
@@ -17,11 +25,21 @@ class Angle : public GameObject {
 		static AngleDef angleIntersection(const Angle* a, const Angle* b);
 
 		void set(const AngleDef& a) {
-			set(a.dir, a.halfAngle);
+			set(a.dir, a.halfAngle, a.full);
 		}
-		void set(vec2f dir, float halfAngle);
+		void set(vec2f dir, float halfAngle, bool full);
 		vec2f getDir() const { return dir; }
 		float getHalfAngle() const { return half; }
+		bool isFull() const {
+			return full;
+		}
+		AngleOverlap contains(const Angle* other) const {
+			return contains(other->getDir(), other->getHalfAngle(), other->full);
+		}
+		AngleOverlap contains(const AngleDef& other) const {
+			return contains(other.dir, other.halfAngle, other.full);
+		}
+		AngleOverlap contains(const vec2f& dir, float half, bool full) const;
 
 		vec3f color = vec3f(0.0f, 1.0f, 0.0f);
 		vec3f center = vec3f(0.0f);
@@ -31,6 +49,7 @@ class Angle : public GameObject {
 	private:
 		vec2f dir = vec2f(0.0f, 1.0f);
 		float half = M_PI/6.0f;
+		bool full = false;
 
 		void updateVerts();
 

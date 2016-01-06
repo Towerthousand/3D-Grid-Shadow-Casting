@@ -48,12 +48,11 @@ Angle::AngleOverlap Angle::contains(const vec2f& dir, float half, bool full) con
 AngleDef Angle::angleUnion(const Angle* a, const Angle* b) {
 	// if any of both are full, union will be full
 	if(a->isFull() || b->isFull()) return {{0.0f, 1.0f}, 0.0f, true};
-	AngleOverlap acb = a->contains(b);
 	// if a contains b, result is a
-	if(acb == CONTAINS)
+	if(a->getHalfAngle() >= b->getHalfAngle() && a->contains(b) == CONTAINS)
 		return {a->getDir(), a->getHalfAngle(), false};
-	// if a doesn't contain any side of b then check if b contains a
-	if(acb == NONE && b->contains(a) == CONTAINS)
+	// and viceversa
+	if(b->getHalfAngle() >= a->getHalfAngle() && b->contains(a) == CONTAINS)
 		return {b->getDir(), b->getHalfAngle(), false};
 	// General case. We compute the ends of the intersection
 	// by rotating each cone direction away from the other direction
@@ -87,19 +86,26 @@ AngleDef Angle::angleUnion(const Angle* a, const Angle* b) {
 }
 
 AngleDef Angle::angleIntersection(const Angle* a, const Angle* b) {
-	AngleOverlap acb = a->contains(b);
+	AngleOverlap acb = INVALID;
 	// if b is full, intersection will be a
-	if(b->isFull()) return {a->getDir(), a->getHalfAngle(), a->isFull()};
+	if(b->isFull())
+		return {a->getDir(), a->getHalfAngle(), a->isFull()};
 	// if A is full or contains b, intersection will equal b
-	if(a->isFull() || acb == CONTAINS) return {b->getDir(), b->getHalfAngle(), b->isFull()};
-	// if a does not contain any side of b, then either b contains a or they don't overlap
-	else if(acb == NONE) {
+	if(a->isFull() || (a->getHalfAngle() > b->getHalfAngle() && (acb = a->contains(b)) == CONTAINS))
+		return {b->getDir(), b->getHalfAngle(), b->isFull()};
+	// if a is not bigger than b...
+	if(acb == INVALID) {
 		AngleOverlap bca = b->contains(a);
-		if(b->isFull() || bca == CONTAINS)
+		// b contains a, return a
+		if(bca == CONTAINS)
 			return {a->getDir(), a->getHalfAngle(), a->isFull()};
-		// they don't overlap, return dummy angle
-		return {{0.0f, 1.0f}, 0.0f, false};
+		// they don't overlap, return empty
+		if(bca == NONE)
+			return {{0.0f, 1.0f}, 0.0f, false};
 	}
+	else if(acb == NONE)
+		// if a is bigger than B but does not contain it, return empty
+		return {{0.0f, 1.0f}, 0.0f, false};
 	// General case. We compute the ends of the intersection
 	// by rotating each cone direction towards the other direction
 	// by their own half angle. This is done avoiding trigonometry,

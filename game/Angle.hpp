@@ -12,6 +12,7 @@ struct AngleDef{
 class Angle : public GameObject {
 	private:
 		enum AngleOverlap {
+			INVALID = -1,
 			NONE = 0,
 			PARTIAL,
 			CONTAINS

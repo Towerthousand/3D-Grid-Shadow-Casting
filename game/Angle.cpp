@@ -162,7 +162,10 @@ AngleDef Angle::angleIntersection(const AngleDef& a, const AngleDef& b) {
 	// outer vectors by the inverse of it's projection onto the new
 	// angle's direction, and computing the length of the vector that
 	// results from going from the central direction to this scaled outer direction
-	return {vec2f(d), glm::length(d-(dir3/glm::dot(dir3,d))), false};
+	float tangent = glm::length(d-(dir3/glm::dot(dir3,d)));
+	if(glm::epsilonEqual(tangent, 0.0f, 0.000001f))
+			return {{0.0f, 1.0f}, 0.0f, false};
+	return {vec2f(d), tangent, false};
 }
 
 void Angle::set(const AngleDef& newDef) {

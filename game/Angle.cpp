@@ -50,15 +50,17 @@ AngleDef Angle::angleUnion(const Angle* a, const Angle* b) {
 	if(a->isFull() || b->isFull()) return {{0.0f, 1.0f}, 0.0f, true};
 	AngleOverlap acb = a->contains(b);
 	// if a contains b, result is a
-	if(acb == CONTAINS) return {a->getDir(), a->getHalfAngle(), false};
+	if(acb == CONTAINS)
+		return {a->getDir(), a->getHalfAngle(), false};
 	// if a doesn't contain any side of b then check if b contains a
-	if(acb == NONE && b->contains(a) == CONTAINS) return {b->getDir(), b->getHalfAngle(), false};
+	if(acb == NONE && b->contains(a) == CONTAINS)
+		return {b->getDir(), b->getHalfAngle(), false};
 	// General case. We compute the ends of the intersection
 	// by rotating each cone direction away from the other direction
 	// by their own half angle. This is done avoiding trigonometry,
 	vec3f dir1 = vec3f(a->getDir(), 0.0f);
 	vec3f dir2 = vec3f(b->getDir(), 0.0f);
-	// cross will point opposite directions depending on wether
+	// cross will point opposite directions depending on whether
 	// dir1 is on the clockwise side of dir2 or the other way around,
 	// in the context of the plane given by (0,0,0), dir1 and dir2,
 	// where dir1 and dir2 are coplanar. cross will point orthogonally away
@@ -81,7 +83,7 @@ AngleDef Angle::angleUnion(const Angle* a, const Angle* b) {
 	// outer vectors by the inverse of it's projection onto the new
 	// angle's direction, and computing the length of the vector that
 	// results from going from the central direction to this scaled outer direction
-	else return {vec2f(d), glm::length(d-(dir3/glm::dot(dir3,d))), false};
+	return {vec2f(d), glm::length(d-(dir3/glm::dot(dir3,d))), false};
 }
 
 AngleDef Angle::angleIntersection(const Angle* a, const Angle* b) {
@@ -93,16 +95,17 @@ AngleDef Angle::angleIntersection(const Angle* a, const Angle* b) {
 	// if a does not contain any side of b, then either b contains a or they don't overlap
 	else if(acb == NONE) {
 		AngleOverlap bca = b->contains(a);
-		if(b->isFull() || bca == CONTAINS) return {a->getDir(), a->getHalfAngle(), a->isFull()};
+		if(b->isFull() || bca == CONTAINS)
+			return {a->getDir(), a->getHalfAngle(), a->isFull()};
 		// they don't overlap, return dummy angle
-		else return {{0.0f, 1.0f}, 0.0f, false};
+		return {{0.0f, 1.0f}, 0.0f, false};
 	}
 	// General case. We compute the ends of the intersection
 	// by rotating each cone direction towards the other direction
 	// by their own half angle. This is done avoiding trigonometry,
 	vec3f dir1 = vec3f(a->getDir(), 0.0f);
 	vec3f dir2 = vec3f(b->getDir(), 0.0f);
-	// cross will point opposite directions depending on wether
+	// cross will point opposite directions depending on whether
 	// dir1 is on the clockwise side of dir2 or the other way around,
 	// in the context of the plane given by (0,0,0), dir1 and dir2,
 	// where dir1 and dir2 are coplanar. cross will point orthogonally away

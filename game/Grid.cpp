@@ -28,10 +28,29 @@ AngleDef Grid::getAngle(int x, int y, Dir d) const {
 		return {vec2f(0.0f, 1.0f), 0.0f, true};
 	vec2f center = vec2f(x, y)+0.5f+vec2f(diff[d])*0.5f;
 	vec2f orig = vec2f(origin)+0.5f;
-	float ballRadius = 0.5f;
-	float tangent = glm::sqrt(glm::distance2(center,orig) - glm::pow(ballRadius, 2));
-	float angle = ballRadius/tangent;
-	return {glm::normalize(center-orig), angle, false};
+	//float ballRadius = 0.5f;
+	//float tangent = glm::sqrt(glm::distance2(center,orig) - glm::pow(ballRadius, 2));
+	//float angle = ballRadius/tangent;
+	//return {glm::normalize(center-orig), angle, false};
+	vec2f p1, p2;
+	switch(d) {
+		case UP:
+		case DOWN:
+			p1 = center+vec2f( 0.5f, 0.0f)-orig;
+			p2 = center+vec2f(-0.5f, 0.0f)-orig;
+			break;
+		case LEFT:
+		case RIGHT:
+			p1 = center+vec2f( 0.0f,  0.5f)-orig;
+			p2 = center+vec2f( 0.0f, -0.5f)-orig;
+			break;
+	}
+	p1 = glm::normalize(p1);
+	p2 = glm::normalize(p2);
+	vec2f dir = glm::normalize(p1+p2);
+	float dist = glm::dot(p1, dir);
+	float tan = glm::distance(p1, dir*dist);
+	return {dir, tan/dist, false};
 }
 
 void Grid::resetCells() {

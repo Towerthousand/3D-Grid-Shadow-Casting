@@ -91,8 +91,11 @@ AngleDef Angle::angleIntersection(const Angle* a, const Angle* b) {
 	if(b->isFull())
 		return {a->getDir(), a->getHalfAngle(), a->isFull()};
 	// if A is full or contains b, intersection will equal b
-	if(a->isFull() || (a->getHalfAngle() > b->getHalfAngle() && (acb = a->contains(b)) == CONTAINS))
-		return {b->getDir(), b->getHalfAngle(), b->isFull()};
+	if(a->isFull() || (a->getHalfAngle() > b->getHalfAngle())) {
+		acb = a->contains(b);
+		if(acb == CONTAINS)
+			return {b->getDir(), b->getHalfAngle(), b->isFull()};
+	}
 	// if a is not bigger than b...
 	if(acb == INVALID) {
 		AngleOverlap bca = b->contains(a);

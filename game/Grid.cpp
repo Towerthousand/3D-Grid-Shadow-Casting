@@ -4,6 +4,13 @@
 
 #define GRIDSIZE 21
 
+vec2i diff[4] = {
+	{ 1,  0},
+	{ 0,  1},
+	{-1,  0},
+	{ 0, -1}
+};
+
 Grid::Grid() {
 	cells = std::vector<std::vector<Cell>>(GRIDSIZE, std::vector<Grid::Cell>(GRIDSIZE));
 	resetCells();
@@ -11,51 +18,30 @@ Grid::Grid() {
 	initQuadMesh();
 	initLinesMesh();
 	updateGridTex();
-
-	test1 = new Angle();
-	test1->addTo(this);
-	test1->doDraw = true;
-	test1->magnitude = 1.0f;
-	test1->color = vec3f(0.0f, 0.0f, 1.0f);
-
-	test2 = new Angle();
-	test2->addTo(this);
-	test2->doDraw = true;
-	test2->magnitude = 1.0f;
-	test2->color = vec3f(0.0f, 0.0f, 1.0f);
-
-	test3 = new Angle();
-	test3->addTo(this);
-	test3->doDraw = true;
-	test3->color = vec3f(0.0f, 1.0f, 1.0f);
-
-	test1->set(glm::normalize(vec2f(-1.0f, 1.0f)), glm::tan(M_PI/6.0f), false);
-	test2->set(glm::normalize(vec2f(1.0f)), glm::tan(M_PI/6.0f), false);
-	test3->set(vec2f(0.0f, 1.0f), glm::tan(M_PI/6.0f), false);
 }
 
 Grid::~Grid() {
 }
 
-AngleDef Grid::getAngle(int x, int y) const {
+AngleDef Grid::getAngle(int x, int y, Dir d) const {
 	if(vec2i(x, y) == origin)
 		return {vec2f(0.0f, 1.0f), 0.0f, true};
-	vec2f center = vec2f(x, y)+0.5f;
+	vec2f center = vec2f(x, y)+0.5f+vec2f(diff[d])*0.5f;
 	vec2f orig = vec2f(origin)+0.5f;
-	float ballRadius = sqrt(2.0f)*0.5f;
-	float angle = ballRadius/(glm::length(center-orig)-ballRadius);
-	return {glm::normalize(center-orig), angle, true};
+	float ballRadius = 0.5f;
+	float tangent = glm::sqrt(glm::distance2(center,orig) - glm::pow(ballRadius, 2));
+	float angle = ballRadius/tangent;
+	return {glm::normalize(center-orig), angle, false};
 }
 
 void Grid::resetCells() {
 	for(int x = 0; x < GRIDSIZE; ++x)
 		for(int y = 0; y < GRIDSIZE; ++y) {
-			if(cells[x][y].angle != nullptr)
-				continue;
-			cells[x][y].angle = new Angle();
-			cells[x][y].angle->addTo(this);
-			AngleDef a = getAngle(x, y);
-			cells[x][y].angle->set(a);
+			if(cells[x][y].angle == nullptr) {
+				cells[x][y].angle = new Angle();
+				cells[x][y].angle->addTo(this);
+			}
+			cells[x][y].angle->set({{0.0f, 1.0f}, 0.0f, false});
 		}
 }
 
@@ -130,15 +116,45 @@ void Grid::toggleBlock() {
 	vec2i c = getMouseCellCoords();
 	if(c.x < 0 || c.y < 0 || c.x >= GRIDSIZE || c.y >= GRIDSIZE) return;
 	cells[c.x][c.y].block = !cells[c.x][c.y].block;
-	updateGridTex();
+	calcAngles();
 }
 
 void Grid::calcAngles() {
 	resetCells();
 	std::queue<vec2i> q;
+	std::unordered_set<vec2i> inQ;
 	std::vector<std::vector<bool>> vis(GRIDSIZE, std::vector<bool>(GRIDSIZE, false));
 	q.push(origin);
-	vis[origin.x][origin.y] = true;
+	inQ.insert(origin);
+	cells[origin.x][origin.y].angle->set({{0.0f, 1.0f}, 0.0f, true});
+	Dir dirs[4] = {RIGHT, UP, LEFT, DOWN};
+	while(!q.empty()) {
+		vec2i front = q.front();
+		vis[front.x][front.y] = true;
+		q.pop();
+		for(Dir d : dirs) {
+			vec2i n = front + diff[d];
+			if(n.x < 0 || n.y < 0 || n.x >= GRIDSIZE || n.y >= GRIDSIZE)
+				continue;
+			if(cells[n.x][n.y].block)
+				continue;
+			if(vis[n.x][n.y])
+				continue;
+			if(inQ.count(n) == 0) {
+				inQ.insert(n);
+				q.push(n);
+			}
+			cells[n.x][n.y].angle->set(
+					Angle::angleUnion(
+						cells[n.x][n.y].angle->getDef(),
+						Angle::angleIntersection(
+							getAngle(front.x, front.y, d),
+							cells[front.x][front.y].angle->getDef()
+							)
+						)
+					);
+		}
+	}
 	updateGridTex();
 }
 
@@ -149,7 +165,7 @@ void Grid::updateGridTex() {
 			Cell& c = cells[x][y];
 			if(vec2i(x, y) == origin) {
 				pixels[x*4+y*GRIDSIZE*4  ] = 100;
-				pixels[x*4+y*GRIDSIZE*4+1] = 10;
+				pixels[x*4+y*GRIDSIZE*4+1] = 100;
 				pixels[x*4+y*GRIDSIZE*4+2] = 10;
 			}
 			else if(c.block) {
@@ -158,9 +174,16 @@ void Grid::updateGridTex() {
 				pixels[x*4+y*GRIDSIZE*4+2] = 15;
 			}
 			else {
-				pixels[x*4+y*GRIDSIZE*4  ] = 5;
-				pixels[x*4+y*GRIDSIZE*4+1] = 5;
-				pixels[x*4+y*GRIDSIZE*4+2] = 5;
+				if(c.angle->getHalfAngle() > 0 || c.angle->isFull()) {
+					pixels[x*4+y*GRIDSIZE*4  ] = 5;
+					pixels[x*4+y*GRIDSIZE*4+1] = 20;
+					pixels[x*4+y*GRIDSIZE*4+2] = 5;
+				}
+				else {
+					pixels[x*4+y*GRIDSIZE*4  ] = 20;
+					pixels[x*4+y*GRIDSIZE*4+1] = 5;
+					pixels[x*4+y*GRIDSIZE*4+2] = 5;
+				}
 			}
 			pixels[x*4+y*GRIDSIZE*4+3] = 255;
 		}
@@ -187,36 +210,6 @@ void Grid::update(float deltaTime) {
 			c.x < GRIDSIZE &&
 			c.y < GRIDSIZE) {
 		cells[c.x][c.y].angle->doDraw = true;
-	}
-	static bool spin = false;
-	if(Keyboard::justPressed(Keyboard::Space)) spin = !spin;
-	if(spin) {
-		test1->set(glm::rotate(test1->getDir(), .5f*deltaTime), test1->getHalfAngle(), false);
-		test2->set(glm::rotate(test2->getDir(), .5f*deltaTime), test2->getHalfAngle(), false);
-	}
-	if(Keyboard::pressed(Keyboard::R))
-		test2->set(test2->getDir(), glm::min(test2->getHalfAngle()+0.001f, float(M_PI*0.999999f)), false);
-	if(Keyboard::pressed(Keyboard::F))
-		test2->set(test2->getDir(), glm::max(test2->getHalfAngle()-0.001f, 0.01f), false);
-	if(Keyboard::pressed(Keyboard::V))
-		test2->set(glm::rotate(test2->getDir(), 1.0f*deltaTime), test2->getHalfAngle(), false);
-	if(Keyboard::pressed(Keyboard::B))
-		test2->set(glm::rotate(test2->getDir(), -1.0f*deltaTime), test2->getHalfAngle(), false);
-	if(Keyboard::justPressed(Keyboard::Z))
-		test1->doDraw = !test1->doDraw;
-	if(Keyboard::justPressed(Keyboard::X))
-		test2->doDraw = !test2->doDraw;
-	if(Keyboard::justPressed(Keyboard::C))
-		test3->doDraw = !test3->doDraw;
-	static int state = 0;
-	if(Keyboard::justPressed(Keyboard::N)) state = (state+1)%2;
-	switch(state) {
-		case 0:
-			test3->set(Angle::angleUnion(test1, test2));
-			break;
-		case 1:
-			test3->set(Angle::angleIntersection(test1, test2));
-			break;
 	}
 }
 

@@ -15,7 +15,14 @@ class Grid : public GameObject {
 			Angle* angle = nullptr;
 		};
 
-		AngleDef getAngle(int x, int y) const;
+		enum Dir {
+			RIGHT = 0,
+			UP,
+			LEFT,
+			DOWN
+		};
+
+		AngleDef getAngle(int x, int y, Dir d) const;
 
 		void resetCells();
 		void initGridTex();
@@ -37,7 +44,7 @@ class Grid : public GameObject {
 		mutable MeshIndexed quad;
 		mutable Mesh lines;
 
-		vec2i origin = vec2i(10,10);
+		vec2i origin = vec2i(10, 10);
 		Angle* test1 = nullptr;
 		Angle* test2 = nullptr;
 		Angle* test3 = nullptr;

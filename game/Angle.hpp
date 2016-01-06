@@ -34,13 +34,13 @@ class Angle : public GameObject {
 		bool isFull() const {
 			return full;
 		}
-		AngleOverlap contains(const Angle* other) const {
-			return contains(other->getDir(), other->getHalfAngle(), other->full);
+		AngleOverlap overlapTest(const Angle* other) const {
+			return overlapTest(other->getDir(), other->getHalfAngle(), other->full);
 		}
-		AngleOverlap contains(const AngleDef& other) const {
-			return contains(other.dir, other.halfAngle, other.full);
+		AngleOverlap overlapTest(const AngleDef& other) const {
+			return overlapTest(other.dir, other.halfAngle, other.full);
 		}
-		AngleOverlap contains(const vec2f& dir, float half, bool full) const;
+		AngleOverlap overlapTest(const vec2f& dir, float half, bool full) const;
 
 		vec3f color = vec3f(0.0f, 1.0f, 0.0f);
 		vec3f center = vec3f(0.0f);

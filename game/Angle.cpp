@@ -15,9 +15,9 @@ Angle::Angle() {
 Angle::~Angle() {
 }
 
-Angle::AngleOverlap Angle::contains(const vec2f& dir, float half, bool full) const {
-	if(full) return this->full ? CONTAINS : PARTIAL;
+Angle::AngleOverlap Angle::overlapTest(const vec2f& dir, float half, bool full) const {
 	if(this->full) return CONTAINS;
+	if(full) return NONE;
 	vec3f dir1 = vec3f(dir, 0.0f);
 	vec3f dir2 = vec3f(this->dir, 0.0f);
 	// side is the vector that orthogonally points away from dir1. With a
@@ -49,10 +49,10 @@ AngleDef Angle::angleUnion(const Angle* a, const Angle* b) {
 	// if any of both are full, union will be full
 	if(a->isFull() || b->isFull()) return {{0.0f, 1.0f}, 0.0f, true};
 	// if a contains b, result is a
-	if(a->getHalfAngle() >= b->getHalfAngle() && a->contains(b) == CONTAINS)
+	if(a->getHalfAngle() >= b->getHalfAngle() && a->overlapTest(b) == CONTAINS)
 		return {a->getDir(), a->getHalfAngle(), false};
 	// and viceversa
-	if(b->getHalfAngle() >= a->getHalfAngle() && b->contains(a) == CONTAINS)
+	if(b->getHalfAngle() >= a->getHalfAngle() && b->overlapTest(a) == CONTAINS)
 		return {b->getDir(), b->getHalfAngle(), false};
 	// General case. We compute the ends of the intersection
 	// by rotating each cone direction away from the other direction
@@ -92,13 +92,13 @@ AngleDef Angle::angleIntersection(const Angle* a, const Angle* b) {
 		return {a->getDir(), a->getHalfAngle(), a->isFull()};
 	// if A is full or contains b, intersection will equal b
 	if(a->isFull() || (a->getHalfAngle() > b->getHalfAngle())) {
-		acb = a->contains(b);
+		acb = a->overlapTest(b);
 		if(acb == CONTAINS)
 			return {b->getDir(), b->getHalfAngle(), b->isFull()};
 	}
 	// if a is not bigger than b...
 	if(acb == INVALID) {
-		AngleOverlap bca = b->contains(a);
+		AngleOverlap bca = b->overlapTest(a);
 		// b contains a, return a
 		if(bca == CONTAINS)
 			return {a->getDir(), a->getHalfAngle(), a->isFull()};

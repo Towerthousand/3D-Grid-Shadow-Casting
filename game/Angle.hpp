@@ -4,7 +4,7 @@
 #include "commons.hpp"
 
 struct AngleDef{
-	vec2f dir;
+	vec3f dir;
 	float halfAngle;
 	bool full;
 };
@@ -26,7 +26,7 @@ class Angle : public GameObject {
 		static AngleDef angleIntersection(const AngleDef& a, const AngleDef& b);
 
 		void set(const AngleDef& newDef);
-		vec2f getDir() const { return def.dir; }
+		vec3f getDir() const { return def.dir; }
 		float getHalfAngle() const { return def.halfAngle; }
 		bool isFull() const { return def.full; }
 		const AngleDef& getDef() const { return def; }
@@ -38,7 +38,7 @@ class Angle : public GameObject {
 		float magnitude = 2.0f;
 
 	private:
-		AngleDef def = {{0.0f, 1.0f}, M_PI/6.0f, false};
+		AngleDef def = {{0.0f, 1.0f, 0.0f}, M_PI/6.0f, false};
 
 		void updateVerts();
 		void update(float deltaTime) override;

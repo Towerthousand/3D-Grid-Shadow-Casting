@@ -44,10 +44,9 @@ class Grid : public GameObject {
 		mutable MeshIndexed quad;
 		mutable Mesh lines;
 
-		vec2i origin = vec2i(10, 10);
-		Angle* test1 = nullptr;
-		Angle* test2 = nullptr;
-		Angle* test3 = nullptr;
+		vec2i origin = vec2i(16, 16);
+		bool genMode2D = false;
+		bool approxMode = false;
 };
 
 #endif //GRID_HPP

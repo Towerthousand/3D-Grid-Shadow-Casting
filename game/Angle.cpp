@@ -1,6 +1,8 @@
 #include "Angle.hpp"
 #include "Manager.hpp"
 
+#define EPSILON 0.00001f
+
 Angle::Angle() {
 	std::vector<Vertex::Attribute> elems = {
 		Vertex::Attribute("a_position", Vertex::Attribute::Float, 3)
@@ -18,9 +20,10 @@ Angle::~Angle() {
 Angle::AngleOverlap Angle::overlapTest(const AngleDef& a, const AngleDef& b) {
 	if(a.full) return CONTAINS;
 	if(b.full) return NONE;
-	vec3f dir1 = vec3f(b.dir, 0.0f);
-	vec3f dir2 = vec3f(a.dir, 0.0f);
-	if(glm::epsilonEqual(dir1, dir2, 0.000001f) == vec3b(true)) {
+	vec3f dir1 = b.dir;
+	vec3f dir2 = a.dir;
+	// if dir1 == dir2 then just check the halfangles
+	if(glm::epsilonEqual(dir1, dir2, EPSILON) == vec3b(true)) {
 		if(a.halfAngle >= b.halfAngle)
 			return CONTAINS;
 		return NONE;
@@ -43,33 +46,49 @@ Angle::AngleOverlap Angle::overlapTest(const AngleDef& a, const AngleDef& b) {
 	// so it can both mean it's fully inside it or that they don't
 	// overlap at all
 	// PARTIAL: this angle contains one of the ends of the other
+	// or is right next to the other by a negligible distance
 	// CONTAINS: this angle fully contains the other
 	int result = 0;
-	if(l1 > 0.0f && r1/l1 < a.halfAngle) result++;
-	if(l2 > 0.0f && r2/l2 < a.halfAngle) result++;
+	if(l1 > 0.0f && r1/l1 < a.halfAngle+EPSILON) result++;
+	if(l2 > 0.0f && r2/l2 < a.halfAngle+EPSILON) result++;
 	return static_cast<AngleOverlap>(result);
 };
 
 AngleDef Angle::angleUnion(const AngleDef& a, const AngleDef& b) {
 	// if any of both are full, union will be full
 	if(a.full || b.full)
-		return {{0.0f, 1.0f}, 0.0f, true};
+		return {{0.0f, 1.0f, 0.0f}, 0.0f, true};
+	// if one of them is null, return the other
 	if(a.halfAngle == 0.0f)
 		return b;
 	if(b.halfAngle == 0.0f)
 		return a;
 	// if a contains b, result is a
-	if(a.halfAngle >= b.halfAngle && overlapTest(a, b) == CONTAINS)
-		return a;
+	AngleOverlap acb = INVALID;
+	if(a.halfAngle >= b.halfAngle) {
+		acb = overlapTest(a, b);
+		if(acb == CONTAINS)
+			return a;
+	}
 	// and viceversa
-	if(b.halfAngle >= a.halfAngle && overlapTest(b, a) == CONTAINS)
-		return b;
+	AngleOverlap bca = INVALID;
+	if(b.halfAngle >= a.halfAngle) {
+		bca = overlapTest(b, a);
+		if(bca == CONTAINS)
+			return b;
+	}
+	// if they are totally disjoint, this is an edge case
+	// caused by the cones being an approximaion and will
+	// for sure be occluded
+	if(bca <= NONE && acb <= NONE)
+		return {{0.0f, 1.0f, 0.0f}, 0.0f, false};
 	// General case. We compute the ends of the intersection
 	// by rotating each cone direction away from the other direction
 	// by their own half angle. This is done avoiding trigonometry,
-	vec3f dir1 = vec3f(a.dir, 0.0f);
-	vec3f dir2 = vec3f(b.dir, 0.0f);
-	if(glm::epsilonEqual(dir1, dir2, 0.000001f) == vec3b(true)) {
+	vec3f dir1 = a.dir;
+	vec3f dir2 = b.dir;
+	// if dir1 == dir2 then just check the halfangles
+	if(glm::epsilonEqual(dir1, dir2, EPSILON) == vec3b(true)) {
 		if(a.halfAngle > b.halfAngle)
 			return a;
 		return b;
@@ -92,12 +111,12 @@ AngleDef Angle::angleUnion(const AngleDef& a, const AngleDef& b) {
 	// d is the direction of the union angle
 	vec3f d = glm::normalize(dir3 + dir4);
 	// if dot(dir1+dir2, d) < 0.0f, the union angle is > 180 deg
-	if(glm::dot(dir1+dir2, d) <= 0.0f) return {{0.0f, 1.0f}, 0.0f, true};
+	if(glm::dot(dir1+dir2, d) <= 0.0f) return {{0.0f, 1.0f, 0.0f}, 0.0f, true};
 	// we compute the tangent of the new halfangle by scaling one of the
 	// outer vectors by the inverse of it's projection onto the new
 	// angle's direction, and computing the length of the vector that
 	// results from going from the central direction to this scaled outer direction
-	return {vec2f(d), glm::length(d-(dir3/glm::dot(dir3,d))), false};
+	return {d, glm::length(d-(dir3/glm::dot(dir3,d))), false};
 }
 
 AngleDef Angle::angleIntersection(const AngleDef& a, const AngleDef& b) {
@@ -109,7 +128,7 @@ AngleDef Angle::angleIntersection(const AngleDef& a, const AngleDef& b) {
 		return {b.dir, b.halfAngle, b.full};
 	// if any of both are null, intersection will be empty
 	if(a.halfAngle == 0.0f || b.halfAngle == 0.0f)
-		return {{0.0f, 1.0f}, 0.0f, false};
+		return {{0.0f, 1.0f, 0.0f}, 0.0f, false};
 	AngleOverlap acb = INVALID;
 	// if a contains b, intersection will equal b
 	if(a.halfAngle >= b.halfAngle) {
@@ -125,18 +144,18 @@ AngleDef Angle::angleIntersection(const AngleDef& a, const AngleDef& b) {
 			return {a.dir, a.halfAngle, a.full};
 		// they don't overlap, return empty
 		if(bca == NONE)
-			return {{0.0f, 1.0f}, 0.0f, false};
+			return {{0.0f, 1.0f, 0.0f}, 0.0f, false};
 	}
 	else if(acb == NONE)
 		// if a is bigger than B but does not contain it, return empty
-		return {{0.0f, 1.0f}, 0.0f, false};
+		return {{0.0f, 1.0f, 0.0f}, 0.0f, false};
 	// General case. We compute the ends of the intersection
 	// by rotating each cone direction towards the other direction
 	// by their own half angle. This is done avoiding trigonometry,
-	vec3f dir1 = vec3f(a.dir, 0.0f);
-	vec3f dir2 = vec3f(b.dir, 0.0f);
-	if(glm::epsilonEqual(dir1, dir2, 0.000001f) == vec3b(true)) {
-		VBE_LOG("TOP_KEK");
+	vec3f dir1 = a.dir;
+	vec3f dir2 = b.dir;
+	// if dir1 == dir2 then just check the halfangles
+	if(glm::epsilonEqual(dir1, dir2, EPSILON) == vec3b(true)) {
 		if(a.halfAngle > b.halfAngle)
 			return b;
 		return a;
@@ -163,9 +182,11 @@ AngleDef Angle::angleIntersection(const AngleDef& a, const AngleDef& b) {
 	// angle's direction, and computing the length of the vector that
 	// results from going from the central direction to this scaled outer direction
 	float tangent = glm::length(d-(dir3/glm::dot(dir3,d)));
-	if(glm::epsilonEqual(tangent, 0.0f, 0.000001f))
-			return {{0.0f, 1.0f}, 0.0f, false};
-	return {vec2f(d), tangent, false};
+	// this handles the imprecision-caused edge case where an angle is created with
+	// a very small tangent
+	if(glm::epsilonEqual(tangent, 0.0f, EPSILON))
+		return {{0.0f, 1.0f, 0.0f}, 0.0f, false};
+	return {d, tangent, false};
 }
 
 void Angle::set(const AngleDef& newDef) {
@@ -188,22 +209,21 @@ void Angle::updateVerts() {
 	float radHalf = 0.0f;
 	if(def.full) radHalf = M_PI;
 	else radHalf = glm::atan(def.halfAngle);
-	vec3f p1 = vec3f(glm::rotate(def.dir, radHalf), 0.0f); // small angle
-	vec3f p2 = vec3f(glm::rotate(def.dir, -radHalf), 0.0f); // big angle
+	vec3f p1 = vec3f(glm::rotate(vec2f(def.dir), radHalf), 0.0f); // small angle
+	vec3f p2 = vec3f(glm::rotate(vec2f(def.dir), -radHalf), 0.0f); // big angle
 	std::vector<vec3f> data;
 	data.push_back(vec3f(0.0f));
 	data.push_back(p1);
 	data.push_back(vec3f(0.0f));
 	data.push_back(p2);
 	data.push_back(vec3f(0.0f));
-	data.push_back(vec3f(def.dir, 0.0f));
+	data.push_back(vec3f(vec2f(def.dir), 0.0f));
 	lines.setVertexData(&data[0], data.size());
 
 	data.clear();
 	data.push_back(vec3f(0.0f));
-	for(float current = -radHalf; current < radHalf; current = current+0.1f) {
-		data.push_back(vec3f(glm::rotate(def.dir, current), 0.0f));
-	}
+	for(float current = -radHalf; current < radHalf; current = current+0.1f) 
+		data.push_back(vec3f(glm::rotate(vec2f(def.dir), current), 0.0f));
 	data.push_back(p1);
 	triangles.setVertexData(&data[0], data.size());
 }

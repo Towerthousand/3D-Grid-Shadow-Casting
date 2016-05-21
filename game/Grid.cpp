@@ -40,6 +40,7 @@ void fy_shuffle(std::vector<T>& v) {
 bool equals(const vec3f& a, const vec3f& b) {
 	return glm::epsilonEqual(a, b, EPSILON) == vec3b(true);
 }
+
 AngleDef getCone(const vec3f& p1, const vec3f& p2) {
 	// p1 and p2 are assumed to be unit vectors
 	vec3f dir = glm::normalize(p1+p2);
@@ -101,10 +102,9 @@ AngleDef getSmallestConeApprox(const std::vector<vec3f>& p) {
 // This is the general implementation for the algorithm found at
 // http://www.cs.technion.ac.il/~cggc/files/gallery-pdfs/Barequet-1.pdf
 // which is an application of the minimum enclosing circle problem to
-// our case. This implementation is just for reference, the actual
-// function to be used is minConeUnroll, which is the unrolled
-// version of this.
-// All vectors in "points" assumed to be unit vectors
+// the bounding cone problem. This implementation is just for reference,
+// the actual function to be used is minConeUnroll, the unrolled
+// version of this. All vectors in "points" are assumed to be unit vectors
 AngleDef minConeTwoPoint(const std::vector<vec3f>& points, unsigned int last, const vec3f& q1, const vec3f& q2) {
 	AngleDef c = getCone(q1, q2);
 	for(unsigned int i = 0; i < last; ++i)
@@ -127,8 +127,8 @@ AngleDef minCone(const std::vector<vec3f>& points) {
 	return c;
 }
 
-// Unrolled version. Of the aforementioned algorithm.
-// I left the recursive calls commente wherever they would
+// Unrolled version of the aforementioned algorithm.
+// I left the recursive calls commented wherever they would
 // be called for the sake of clarity/readability.
 // This only works with four points, not for the generic case.
 AngleDef minConeUnroll(const vec3f& v0, const vec3f& v1, const vec3f& v2, const vec3f& v3) {

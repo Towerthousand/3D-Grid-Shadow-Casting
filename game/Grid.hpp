@@ -4,49 +4,49 @@
 #include "Angle.hpp"
 
 class Grid : public GameObject {
-	public:
-		Grid();
-		~Grid();
+    public:
+        Grid();
+        ~Grid();
 
-	private:
-		struct Cell {
-			bool block = false;
-			bool visible = false;
-			Angle* angle = nullptr;
-		};
+    private:
+        struct Cell {
+            bool block = false;
+            bool visible = false;
+            Angle* angle = nullptr;
+        };
 
-		enum Dir {
-			RIGHT = 0,
-			UP,
-			LEFT,
-			DOWN
-		};
+        enum Dir {
+            RIGHT = 0,
+            UP,
+            LEFT,
+            DOWN
+        };
 
-		AngleDef getAngle(int x, int y, Dir d) const;
+        AngleDef getAngle(int x, int y, Dir d) const;
 
-		void resetCells();
-		void initGridTex();
-		void initQuadMesh();
-		void initLinesMesh();
+        void resetCells();
+        void initGridTex();
+        void initQuadMesh();
+        void initLinesMesh();
 
-		vec2f getRelPos() const;
-		vec2i getMouseCellCoords() const;
-		void toggleBlock();
+        vec2f getRelPos() const;
+        vec2i getMouseCellCoords() const;
+        void toggleBlock();
 
-		void calcAngles();
-		void updateGridTex();
+        void calcAngles();
+        void updateGridTex();
 
-		void update(float deltaTime) override;
-		void draw() const override;
+        void update(float deltaTime) override;
+        void draw() const override;
 
-		std::vector<std::vector<Cell>> cells;
-		Texture2D gridTex;
-		mutable MeshIndexed quad;
-		mutable Mesh lines;
+        std::vector<std::vector<Cell>> cells;
+        Texture2D gridTex;
+        mutable MeshIndexed quad;
+        mutable Mesh lines;
 
-		vec2i origin = vec2i(16, 16);
-		bool genMode2D = false;
-		bool approxMode = false;
+        vec2i origin = vec2i(16, 16);
+        bool genMode2D = false;
+        bool approxMode = false;
 };
 
 #endif //GRID_HPP

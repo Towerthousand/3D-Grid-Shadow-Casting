@@ -6,9 +6,7 @@
 
 This demo uses OpenGL 4.3. Appropriate drivers should be installed. It also uses [GLEW](http://glew.sourceforge.net/) (`libglew-dev`, tested with >=1.10) and [SDL 2](https://www.libsdl.org/) (`libsdl2-dev`, tested with >=2.0.1) for window managing and input/audio devices.
 
-To build these projects you will need both `make` and `qmake` installed.
-
-The buils/run scripts use the [ccze](https://github.com/cornet/ccze) (`ccze`) utility to color the output of the build/run process.
+To build these projects you will need both `make` and `qmake` installed. On Ubuntu at least, qmake requires the `qt5-default` package to be installed too.
 
 ## Setup
 

@@ -18,6 +18,7 @@ SOURCES += \
     main.cpp \
     Scene.cpp \
     Grid.cpp \
+    GridOrtho.cpp \
     Manager.cpp \
     Angle.cpp
 
@@ -25,6 +26,7 @@ HEADERS += \
     commons.hpp \
     Scene.hpp \
     Grid.hpp \
+    GridOrtho.hpp \
     Manager.hpp \
     Angle.hpp
 

@@ -1,4 +1,5 @@
 #include "Scene.hpp"
+#include "GridOrtho.hpp"
 #include "Grid.hpp"
 #include "Manager.hpp"
 
@@ -36,6 +37,9 @@ Scene::Scene() {
 
     Grid* g = new Grid();
     g->addTo(this);
+
+    GridOrtho* g2 = new GridOrtho();
+    g2->addTo(this);
 }
 
 Scene::~Scene() {

@@ -3,7 +3,9 @@
 #include "Manager.hpp"
 
 #define GRIDSIZE 33
+#define BOARD_SCALE 10.0f
 #define EPSILON 0.000001f
+#define BOARD_POSITION_X 21.0f
 
 vec3i diff[4] = {
     { 1,  0, 0},
@@ -276,21 +278,24 @@ void Grid::initLinesMesh() {
     lines.setPrimitiveType(Mesh::LINES);
 }
 
+// Get  grid coords for the mouse: (0, 0) is lower left, (1,1) is upper right
 vec2f Grid::getRelPos() const {
     Scene* scene = (Scene*)getGame()->getObjectByName("SCENE");
+    // mouse coords: (0,0) as the upper left corner, (sWidth, sHeight) as lower right
     vec2i pos = Mouse::position();
+    // wSize in pixels
     vec2ui windowSize = Window::getInstance()->getSize();
-    //zoom scaled to match the board scale (10.0f)
-    float zoom = scene->getZoom()/10.0f;
+    //zoom scaled to match the board scale
+    float zoom = scene->getZoom()/BOARD_SCALE;
     // (set 0,0 to the center of the screen (board center initially)
     pos -= vec2i(windowSize/(uint)2);
     // top is .5, bottom is .5, y's need to be inverted since mouse coords are in -y
     vec2f relPos = vec2f(float(pos.x)/float(windowSize.y), -float(pos.y)/float(windowSize.y));
     // scale
     relPos *= zoom;
-    // translate to camera pos, 20.0f is the board size
-    relPos += vec2f(scene->getCamera()->getWorldPos()/20.0f);
-    //finally, set (0,0) to the lower left corner
+    // translate to camera pos, 2.0f*BOARD_SCALE is the board world size, since original mesh is 2x2
+    relPos += (vec2f(scene->getCamera()->getWorldPos())-vec2f(BOARD_POSITION_X, 0.0f))/(2.0f*BOARD_SCALE);
+    // set (0,0) to the lower left corner
     relPos += vec2f(0.5f);
     return relPos;
 }
@@ -392,7 +397,8 @@ void Grid::updateGridTex() {
 
 void Grid::update(float deltaTime) {
     (void) deltaTime;
-    transform = glm::scale(mat4f(1.0f), vec3f(10.0f));
+    transform = glm::translate(mat4f(1.0f), vec3f(BOARD_POSITION_X, 0.0f, 0.0f));
+    transform = glm::scale(transform, vec3f(BOARD_SCALE));
     Mouse::setRelativeMode(false);
     if (Mouse::justPressed(Mouse::Left))
         toggleBlock();

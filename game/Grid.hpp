@@ -11,7 +11,6 @@ class Grid : public GameObject {
     private:
         struct Cell {
             bool block = false;
-            bool visible = false;
             Angle* angle = nullptr;
         };
 

@@ -22,7 +22,7 @@ class Scene : public GameObject {
         void updateView(float deltaTime);
 
         Camera* camera = nullptr;
-        float zoom = 20.0f;
+        float zoom = 10.0f;
         vec3f pos = vec3f(0.0f);
 };
 

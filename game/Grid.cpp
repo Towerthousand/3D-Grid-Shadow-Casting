@@ -295,7 +295,6 @@ void Grid::calcAngles() {
     std::vector<std::vector<bool>> vis(GRIDSIZE, std::vector<bool>(GRIDSIZE, false));
     q.push(origin);
     cells[origin.x][origin.y].angle->set({{0.0f, 0.0f, 0.0f}, 0.0f, true});
-    Face dirs[6] = {MINX, MAXX, MINY, MAXY, MINZ, MAXZ};
     while(!q.empty()) {
         vec3i front = q.front();
         q.pop();
@@ -304,7 +303,7 @@ void Grid::calcAngles() {
         vis[front.x][front.y] = true;
         const Angle* frontAngle = cells[front.x][front.y].angle;
         if(frontAngle->getHalfAngle() == 0.0f && !frontAngle->isFull()) continue;
-        for(Face i : dirs) {
+        for(int i = 0; i < 6; ++i) {
             vec3i n = front + offsets[i];
             // Out of bountaries
             if(n.x < 0 || n.y < 0 || n.x >= GRIDSIZE || n.y >= GRIDSIZE || n.z != origin.z) continue;
@@ -318,7 +317,7 @@ void Grid::calcAngles() {
                     Angle::angleUnion(
                         cells[n.x][n.y].angle->getDef(),
                         Angle::angleIntersection(
-                            getAngle(front, i, origin),
+                            getAngle(front, (Grid::Face) i, origin),
                             cells[front.x][front.y].angle->getDef()
                             )
                         )

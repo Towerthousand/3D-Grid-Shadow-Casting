@@ -317,35 +317,26 @@ void Grid::toggleBlock() {
 void Grid::calcAngles() {
     resetCells();
     std::queue<vec2i> q;
-    std::unordered_set<vec2i> inQ;
     std::vector<std::vector<bool>> vis(GRIDSIZE, std::vector<bool>(GRIDSIZE, false));
     q.push(origin);
-    inQ.insert(origin);
-    cells[origin.x][origin.y].angle->set({{0.0f, 1.0f, 0.0f}, 0.0f, true});
+    cells[origin.x][origin.y].angle->set({{1.0f, 1.0f, 0.0f}, 0.0f, true});
     Dir dirs[4] = {RIGHT, UP, LEFT, DOWN};
     while(!q.empty()) {
         vec2i front = q.front();
-        vis[front.x][front.y] = true;
         q.pop();
+        // visited
+        if(vis[front.x][front.y]) continue;
+        vis[front.x][front.y] = true;
         for(Dir d : dirs) {
             vec2i n = front + vec2i(diff[d]);
             // Out of bountaries
-            if(n.x < 0 || n.y < 0 || n.x >= GRIDSIZE || n.y >= GRIDSIZE)
-                continue;
+            if(n.x < 0 || n.y < 0 || n.x >= GRIDSIZE || n.y >= GRIDSIZE) continue;
             // Straight line will have the smallest possible manhattan distance to the origin
-            if(manhattanDist(origin, n) < manhattanDist(origin, front))
-                continue;
+            if(manhattanDist(origin, n) < manhattanDist(origin, front)) continue;
             // This is a blocker
-            if(cells[n.x][n.y].block)
-                continue;
-            // Already visited
-            if(vis[n.x][n.y])
-                continue;
-            // Have we pushed this to the queue yet?
-            if(inQ.count(n) == 0) {
-                inQ.insert(n);
-                q.push(n);
-            }
+            if(cells[n.x][n.y].block) continue;
+            // Push it
+            q.push(n);
             cells[n.x][n.y].angle->set(
                     Angle::angleUnion(
                         cells[n.x][n.y].angle->getDef(),

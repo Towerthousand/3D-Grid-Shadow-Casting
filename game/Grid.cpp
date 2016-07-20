@@ -327,6 +327,8 @@ void Grid::calcAngles() {
         // visited
         if(vis[front.x][front.y]) continue;
         vis[front.x][front.y] = true;
+        const Angle* frontAngle = cells[front.x][front.y].angle;
+        if(frontAngle->getHalfAngle() == 0.0f && !frontAngle->isFull()) continue;
         for(Dir d : dirs) {
             vec2i n = front + vec2i(diff[d]);
             // Out of bountaries

@@ -186,7 +186,7 @@ AngleDef Angle::angleIntersection(const AngleDef& a, const AngleDef& b) {
 
 void Angle::set(const AngleDef& newDef) {
     def.dir = glm::normalize(newDef.dir);
-    VBE_ASSERT(!glm::isnan(def.dir).x && !glm::isnan(def.dir).y, "setAngle needs a non-zero dir " << newDef.dir);
+    VBE_ASSERT(newDef.full || newDef.halfAngle == 0.0f || (!glm::isnan(def.dir).x && !glm::isnan(def.dir).y), "setAngle needs a non-zero dir " << newDef.dir);
     if(newDef.full) {
         def.halfAngle = 0.0f;
         def.full = true;

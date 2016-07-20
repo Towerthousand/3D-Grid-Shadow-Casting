@@ -14,14 +14,16 @@ class Grid : public GameObject {
             Angle* angle = nullptr;
         };
 
-        enum Dir {
-            RIGHT = 0,
-            UP,
-            LEFT,
-            DOWN
+        enum Face {
+            MINX = 0,
+            MAXX,
+            MINY,
+            MAXY,
+            MINZ,
+            MAXZ,
         };
 
-        AngleDef getAngle(vec3i pos, Dir d, vec3i origin) const;
+        AngleDef getAngle(vec3i pos, Face f, vec3i origin) const;
 
         void resetCells();
         void initGridTex();

@@ -7,11 +7,13 @@
 #define EPSILON 0.000001f
 #define BOARD_POSITION_X 21.0f
 
-vec3i diff[4] = {
-    { 1,  0, 0},
-    { 0,  1, 0},
-    {-1,  0, 0},
-    { 0, -1, 0}
+vec3i diff[6] = {
+    {-1, 0, 0},
+    { 1, 0, 0},
+    { 0,-1, 0},
+    { 0, 1, 0},
+    { 0, 0,-1},
+    { 0, 0, 1}
 };
 
 Grid::Grid() {
@@ -179,27 +181,34 @@ AngleDef getSmallestCone(const std::vector<vec3f>& p, bool approxMode) {
 
 // If genMode2D is true, this will calculate the new cones using only
 // two points per face instead of 4, hence simulating a 2D grid case
-AngleDef Grid::getAngle(vec3i pos, Dir d, vec3i origin) const {
+AngleDef Grid::getAngle(vec3i pos, Grid::Face f, vec3i origin) const {
     if(pos == origin)
         return {{0.0f, 0.0f, 0.0f}, 0.0f, true};
-    vec3f center = vec3f(pos)+0.5f+vec3f(diff[d])*0.5f;
+    vec3f center = vec3f(pos)+0.5f+vec3f(diff[f])*0.5f;
     vec3f orig = vec3f(origin)+0.5f;
     if(!genMode2D) {
         std::vector<vec3f> p(4);
-        switch(d) {
-            case UP:
-            case DOWN:
+        switch(f) {
+            case MINX:
+            case MAXX:
+                p[0] = center+vec3f( 0.0f, 0.5f, 0.5f)-orig;
+                p[1] = center+vec3f( 0.0f,-0.5f, 0.5f)-orig;
+                p[2] = center+vec3f( 0.0f, 0.5f,-0.5f)-orig;
+                p[3] = center+vec3f( 0.0f,-0.5f,-0.5f)-orig;
+                break;
+            case MINY:
+            case MAXY:
                 p[0] = center+vec3f( 0.5f, 0.0f, 0.5f)-orig;
                 p[1] = center+vec3f(-0.5f, 0.0f, 0.5f)-orig;
                 p[2] = center+vec3f( 0.5f, 0.0f,-0.5f)-orig;
                 p[3] = center+vec3f(-0.5f, 0.0f,-0.5f)-orig;
                 break;
-            case LEFT:
-            case RIGHT:
-                p[0] = center+vec3f( 0.0f, 0.5f, 0.5f)-orig;
-                p[1] = center+vec3f( 0.0f,-0.5f, 0.5f)-orig;
-                p[2] = center+vec3f( 0.0f, 0.5f,-0.5f)-orig;
-                p[3] = center+vec3f( 0.0f,-0.5f,-0.5f)-orig;
+            case MINZ:
+            case MAXZ:
+                p[0] = center+vec3f( 0.5f, 0.5f, 0.0f)-orig;
+                p[1] = center+vec3f(-0.5f, 0.5f, 0.0f)-orig;
+                p[2] = center+vec3f( 0.5f,-0.5f, 0.0f)-orig;
+                p[3] = center+vec3f(-0.5f,-0.5f, 0.0f)-orig;
                 break;
         }
         for(vec3f& v : p) v = glm::normalize(v);
@@ -207,17 +216,19 @@ AngleDef Grid::getAngle(vec3i pos, Dir d, vec3i origin) const {
         return getSmallestCone(p, approxMode);
     }
     vec2f p1, p2;
-    switch(d) {
-        case UP:
-        case DOWN:
+    switch(f) {
+        case MINY:
+        case MAXY:
             p1 = vec2f(center)+vec2f( 0.5f, 0.0f)-vec2f(orig);
             p2 = vec2f(center)+vec2f(-0.5f, 0.0f)-vec2f(orig);
             break;
-        case LEFT:
-        case RIGHT:
+        case MINX:
+        case MAXX:
             p1 = vec2f(center)+vec2f( 0.0f,  0.5f)-vec2f(orig);
             p2 = vec2f(center)+vec2f( 0.0f, -0.5f)-vec2f(orig);
             break;
+        default:
+            VBE_ASSERT(f != MINZ && f != MAXZ, "3rd dimension disallowed in 2D mode");
     }
     return getCone(glm::normalize(vec3f(p1, 0.0f)), glm::normalize(vec3f(p2, 0.0f)));
 }
@@ -320,7 +331,7 @@ void Grid::calcAngles() {
     std::vector<std::vector<bool>> vis(GRIDSIZE, std::vector<bool>(GRIDSIZE, false));
     q.push(origin);
     cells[origin.x][origin.y].angle->set({{0.0f, 0.0f, 0.0f}, 0.0f, true});
-    Dir dirs[4] = {RIGHT, UP, LEFT, DOWN};
+    Face dirs[6] = {MINX, MAXX, MINY, MAXY, MINZ, MAXZ};
     while(!q.empty()) {
         vec3i front = q.front();
         q.pop();
@@ -329,10 +340,10 @@ void Grid::calcAngles() {
         vis[front.x][front.y] = true;
         const Angle* frontAngle = cells[front.x][front.y].angle;
         if(frontAngle->getHalfAngle() == 0.0f && !frontAngle->isFull()) continue;
-        for(Dir d : dirs) {
-            vec3i n = front + diff[d];
+        for(Face i : dirs) {
+            vec3i n = front + diff[i];
             // Out of bountaries
-            if(n.x < 0 || n.y < 0 || n.x >= GRIDSIZE || n.y >= GRIDSIZE) continue;
+            if(n.x < 0 || n.y < 0 || n.x >= GRIDSIZE || n.y >= GRIDSIZE || n.z != origin.z) continue;
             // Straight line will have the smallest possible manhattan distance to the origin
             if(manhattanDist(origin, n) < manhattanDist(origin, front)) continue;
             // This is a blocker
@@ -343,7 +354,7 @@ void Grid::calcAngles() {
                     Angle::angleUnion(
                         cells[n.x][n.y].angle->getDef(),
                         Angle::angleIntersection(
-                            getAngle(front, d, origin),
+                            getAngle(front, i, origin),
                             cells[front.x][front.y].angle->getDef()
                             )
                         )

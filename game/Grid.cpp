@@ -26,8 +26,8 @@ Grid::Grid() {
 Grid::~Grid() {
 }
 
-int manhattanDist(vec2i a, vec2i b) {
-    return glm::abs(a.x-b.x) + glm::abs(a.y-b.y);
+int manhattanDist(vec3i a, vec3i b) {
+    return glm::abs(a.x-b.x) + glm::abs(a.y-b.y) + glm::abs(a.z-b.z);
 }
 
 // This is a standard Fisher-Yates random in-place shuffle
@@ -179,11 +179,11 @@ AngleDef getSmallestCone(const std::vector<vec3f>& p, bool approxMode) {
 
 // If genMode2D is true, this will calculate the new cones using only
 // two points per face instead of 4, hence simulating a 2D grid case
-AngleDef Grid::getAngle(vec2i pos, Dir d, vec2i origin) const {
+AngleDef Grid::getAngle(vec3i pos, Dir d, vec3i origin) const {
     if(pos == origin)
         return {{0.0f, 0.0f, 0.0f}, 0.0f, true};
-    vec3f center = vec3f(vec2f(pos), 0.0f)+vec3f(0.5f, 0.5f, 0.0f)+vec3f(diff[d])*0.5f;
-    vec3f orig = vec3f(vec3i(origin, 0))+vec3f(0.5f, 0.5f, 0.0f);
+    vec3f center = vec3f(pos)+0.5f+vec3f(diff[d])*0.5f;
+    vec3f orig = vec3f(origin)+0.5f;
     if(!genMode2D) {
         std::vector<vec3f> p(4);
         switch(d) {
@@ -229,9 +229,9 @@ void Grid::resetCells() {
                 cells[x][y].angle->removeAndDelete();
             cells[x][y].angle = new Angle();
             cells[x][y].angle->addTo(this);
-            vec2f o = (vec2f(origin) + 0.5f)/float(GRIDSIZE);
+            vec3f o = (vec3f(origin) + 0.5f)/float(GRIDSIZE);
             o = o*2.0f - 1.0f;
-            cells[x][y].angle->center = vec3f(o, 0.0f);
+            cells[x][y].angle->center = vec3f(vec2f(o), 0.0f);
             cells[x][y].angle->set({{0.0f, 0.0f, 0.0f}, 0.0f, false});
         }
 }
@@ -316,13 +316,13 @@ void Grid::toggleBlock() {
 // Main algorithm!
 void Grid::calcAngles() {
     resetCells();
-    std::queue<vec2i> q;
+    std::queue<vec3i> q;
     std::vector<std::vector<bool>> vis(GRIDSIZE, std::vector<bool>(GRIDSIZE, false));
     q.push(origin);
     cells[origin.x][origin.y].angle->set({{0.0f, 0.0f, 0.0f}, 0.0f, true});
     Dir dirs[4] = {RIGHT, UP, LEFT, DOWN};
     while(!q.empty()) {
-        vec2i front = q.front();
+        vec3i front = q.front();
         q.pop();
         // visited
         if(vis[front.x][front.y]) continue;
@@ -330,7 +330,7 @@ void Grid::calcAngles() {
         const Angle* frontAngle = cells[front.x][front.y].angle;
         if(frontAngle->getHalfAngle() == 0.0f && !frontAngle->isFull()) continue;
         for(Dir d : dirs) {
-            vec2i n = front + vec2i(diff[d]);
+            vec3i n = front + diff[d];
             // Out of bountaries
             if(n.x < 0 || n.y < 0 || n.x >= GRIDSIZE || n.y >= GRIDSIZE) continue;
             // Straight line will have the smallest possible manhattan distance to the origin
@@ -358,7 +358,7 @@ void Grid::updateGridTex() {
     for(int x = 0; x < GRIDSIZE; ++x) {
         for(int y = 0; y < GRIDSIZE; ++y) {
             Cell& c = cells[x][y];
-            if(vec2i(x, y) == origin) {
+            if(vec2i(x, y) == vec2i(origin)) {
                 // Origin painted Yellow
                 pixels[x*4+y*GRIDSIZE*4  ] = 100;
                 pixels[x*4+y*GRIDSIZE*4+1] = 100;

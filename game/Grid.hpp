@@ -21,7 +21,7 @@ class Grid : public GameObject {
             DOWN
         };
 
-        AngleDef getAngle(vec2i pos, Dir d, vec2i origin) const;
+        AngleDef getAngle(vec3i pos, Dir d, vec3i origin) const;
 
         void resetCells();
         void initGridTex();
@@ -43,7 +43,7 @@ class Grid : public GameObject {
         mutable MeshIndexed quad;
         mutable Mesh lines;
 
-        vec2i origin = vec2i(16, 16);
+        vec3i origin = {16, 16, 16};
         bool genMode2D = false;
         bool approxMode = false;
 };

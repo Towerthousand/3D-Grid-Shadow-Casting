@@ -87,22 +87,6 @@ bool insideCone(const AngleDef& c, const vec3f& v) {
     return (dist > 0.0f && tan/dist <= (c.halfAngle+EPSILON));
 }
 
-// This is the cheap approximation for the bounding cone problem.
-// Has a bad relative error rate.
-// All vectors in p assumed to be unit vectors
-AngleDef getSmallestConeApprox(const std::vector<vec3f>& p) {
-    vec3f dir;
-    for(const vec3f& v : p)
-        dir += v;
-    dir = glm::normalize(dir);
-    float tan = 0.0f;
-    for(const vec3f& v : p) {
-        float dist = glm::dot(v, dir);
-        tan = glm::max(tan, glm::distance(v, dir*dist)/dist);
-    }
-    return {dir, tan, false};
-}
-
 // This is the general implementation for the algorithm found at
 // http://www.cs.technion.ac.il/~cggc/files/gallery-pdfs/Barequet-1.pdf
 // which is an application of the minimum enclosing circle problem to
@@ -169,13 +153,11 @@ AngleDef minConeUnroll(const vec3f& v0, const vec3f& v1, const vec3f& v2, const 
     return c;
 }
 
-AngleDef getSmallestCone(const std::vector<vec3f>& p, bool approxMode) {
+AngleDef getSmallestCone(const std::vector<vec3f>& p) {
     VBE_ASSERT(p.size() == 4, "getSmallestCone expects 4 points");
     for(auto v : p) {
         VBE_ASSERT(equals(glm::normalize(v), v), "getSmallestCone expects unit vectors");
     }
-    if(approxMode)
-        return getSmallestConeApprox(p);
     return minConeUnroll(p[0], p[1], p[2], p[3]);
 }
 
@@ -186,51 +168,33 @@ AngleDef Grid::getAngle(vec3i pos, Grid::Face f, vec3i origin) const {
         return {{0.0f, 0.0f, 0.0f}, 0.0f, true};
     vec3f center = vec3f(pos)+0.5f+vec3f(diff[f])*0.5f;
     vec3f orig = vec3f(origin)+0.5f;
-    if(!genMode2D) {
-        std::vector<vec3f> p(4);
-        switch(f) {
-            case MINX:
-            case MAXX:
-                p[0] = center+vec3f( 0.0f, 0.5f, 0.5f)-orig;
-                p[1] = center+vec3f( 0.0f,-0.5f, 0.5f)-orig;
-                p[2] = center+vec3f( 0.0f, 0.5f,-0.5f)-orig;
-                p[3] = center+vec3f( 0.0f,-0.5f,-0.5f)-orig;
-                break;
-            case MINY:
-            case MAXY:
-                p[0] = center+vec3f( 0.5f, 0.0f, 0.5f)-orig;
-                p[1] = center+vec3f(-0.5f, 0.0f, 0.5f)-orig;
-                p[2] = center+vec3f( 0.5f, 0.0f,-0.5f)-orig;
-                p[3] = center+vec3f(-0.5f, 0.0f,-0.5f)-orig;
-                break;
-            case MINZ:
-            case MAXZ:
-                p[0] = center+vec3f( 0.5f, 0.5f, 0.0f)-orig;
-                p[1] = center+vec3f(-0.5f, 0.5f, 0.0f)-orig;
-                p[2] = center+vec3f( 0.5f,-0.5f, 0.0f)-orig;
-                p[3] = center+vec3f(-0.5f,-0.5f, 0.0f)-orig;
-                break;
-        }
-        for(vec3f& v : p) v = glm::normalize(v);
-        fy_shuffle(p);
-        return getSmallestCone(p, approxMode);
-    }
-    vec2f p1, p2;
+    std::vector<vec3f> p(4);
     switch(f) {
-        case MINY:
-        case MAXY:
-            p1 = vec2f(center)+vec2f( 0.5f, 0.0f)-vec2f(orig);
-            p2 = vec2f(center)+vec2f(-0.5f, 0.0f)-vec2f(orig);
-            break;
         case MINX:
         case MAXX:
-            p1 = vec2f(center)+vec2f( 0.0f,  0.5f)-vec2f(orig);
-            p2 = vec2f(center)+vec2f( 0.0f, -0.5f)-vec2f(orig);
+            p[0] = center+vec3f( 0.0f, 0.5f, 0.5f)-orig;
+            p[1] = center+vec3f( 0.0f,-0.5f, 0.5f)-orig;
+            p[2] = center+vec3f( 0.0f, 0.5f,-0.5f)-orig;
+            p[3] = center+vec3f( 0.0f,-0.5f,-0.5f)-orig;
             break;
-        default:
-            VBE_ASSERT(f != MINZ && f != MAXZ, "3rd dimension disallowed in 2D mode");
+        case MINY:
+        case MAXY:
+            p[0] = center+vec3f( 0.5f, 0.0f, 0.5f)-orig;
+            p[1] = center+vec3f(-0.5f, 0.0f, 0.5f)-orig;
+            p[2] = center+vec3f( 0.5f, 0.0f,-0.5f)-orig;
+            p[3] = center+vec3f(-0.5f, 0.0f,-0.5f)-orig;
+            break;
+        case MINZ:
+        case MAXZ:
+            p[0] = center+vec3f( 0.5f, 0.5f, 0.0f)-orig;
+            p[1] = center+vec3f(-0.5f, 0.5f, 0.0f)-orig;
+            p[2] = center+vec3f( 0.5f,-0.5f, 0.0f)-orig;
+            p[3] = center+vec3f(-0.5f,-0.5f, 0.0f)-orig;
+            break;
     }
-    return getCone(glm::normalize(vec3f(p1, 0.0f)), glm::normalize(vec3f(p2, 0.0f)));
+    for(vec3f& v : p) v = glm::normalize(v);
+    fy_shuffle(p);
+    return getSmallestCone(p);
 }
 
 void Grid::resetCells() {
@@ -416,16 +380,6 @@ void Grid::update(float deltaTime) {
        c.x < GRIDSIZE &&
        c.y < GRIDSIZE) {
         cells[c.x][c.y].angle->doDraw = true;
-    }
-    if(Keyboard::justPressed(Keyboard::Space)) {
-        genMode2D = !genMode2D;
-        Log::message() << "Setting mode to " << (genMode2D? "2D" : "3D") << Log::Flush;
-        calcAngles();
-    }
-    if(Keyboard::justPressed(Keyboard::Z)) {
-        approxMode = !approxMode;
-        Log::message() << "Setting mode to " << (approxMode? "approximated" : "exact") << Log::Flush;
-        calcAngles();
     }
 }
 

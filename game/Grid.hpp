@@ -46,8 +46,6 @@ class Grid : public GameObject {
         mutable Mesh lines;
 
         vec3i origin = {16, 16, 16};
-        bool genMode2D = false;
-        bool approxMode = false;
 };
 
 #endif //GRID_HPP

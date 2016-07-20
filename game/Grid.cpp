@@ -7,7 +7,7 @@
 #define EPSILON 0.000001f
 #define BOARD_POSITION_X 21.0f
 
-vec3i diff[6] = {
+vec3i offsets[6] = {
     {-1, 0, 0},
     { 1, 0, 0},
     { 0,-1, 0},
@@ -166,7 +166,7 @@ AngleDef getSmallestCone(const std::vector<vec3f>& p) {
 AngleDef Grid::getAngle(vec3i pos, Grid::Face f, vec3i origin) const {
     if(pos == origin)
         return {{0.0f, 0.0f, 0.0f}, 0.0f, true};
-    vec3f center = vec3f(pos)+0.5f+vec3f(diff[f])*0.5f;
+    vec3f center = vec3f(pos)+0.5f+vec3f(offsets[f])*0.5f;
     vec3f orig = vec3f(origin)+0.5f;
     std::vector<vec3f> p(4);
     switch(f) {
@@ -305,7 +305,7 @@ void Grid::calcAngles() {
         const Angle* frontAngle = cells[front.x][front.y].angle;
         if(frontAngle->getHalfAngle() == 0.0f && !frontAngle->isFull()) continue;
         for(Face i : dirs) {
-            vec3i n = front + diff[i];
+            vec3i n = front + offsets[i];
             // Out of bountaries
             if(n.x < 0 || n.y < 0 || n.x >= GRIDSIZE || n.y >= GRIDSIZE || n.z != origin.z) continue;
             // Straight line will have the smallest possible manhattan distance to the origin

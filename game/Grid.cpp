@@ -179,10 +179,10 @@ AngleDef getSmallestCone(const std::vector<vec3f>& p, bool approxMode) {
 
 // If genMode2D is true, this will calculate the new cones using only
 // two points per face instead of 4, hence simulating a 2D grid case
-AngleDef Grid::getAngle(int x, int y, Dir d) const {
-    if(vec2i(x, y) == origin)
-        return {{0.0f, 1.0f, 0.0f}, 0.0f, true};
-    vec3f center = vec3f(x, y, 0.0f)+vec3f(0.5f, 0.5f, 0.0f)+vec3f(diff[d])*0.5f;
+AngleDef Grid::getAngle(vec2i pos, Dir d, vec2i origin) const {
+    if(pos == origin)
+        return {{0.0f, 0.0f, 0.0f}, 0.0f, true};
+    vec3f center = vec3f(vec2f(pos), 0.0f)+vec3f(0.5f, 0.5f, 0.0f)+vec3f(diff[d])*0.5f;
     vec3f orig = vec3f(vec3i(origin, 0))+vec3f(0.5f, 0.5f, 0.0f);
     if(!genMode2D) {
         std::vector<vec3f> p(4);
@@ -232,7 +232,7 @@ void Grid::resetCells() {
             vec2f o = (vec2f(origin) + 0.5f)/float(GRIDSIZE);
             o = o*2.0f - 1.0f;
             cells[x][y].angle->center = vec3f(o, 0.0f);
-            cells[x][y].angle->set({{0.0f, 1.0f, 0.0f}, 0.0f, false});
+            cells[x][y].angle->set({{0.0f, 0.0f, 0.0f}, 0.0f, false});
         }
 }
 
@@ -319,7 +319,7 @@ void Grid::calcAngles() {
     std::queue<vec2i> q;
     std::vector<std::vector<bool>> vis(GRIDSIZE, std::vector<bool>(GRIDSIZE, false));
     q.push(origin);
-    cells[origin.x][origin.y].angle->set({{1.0f, 1.0f, 0.0f}, 0.0f, true});
+    cells[origin.x][origin.y].angle->set({{0.0f, 0.0f, 0.0f}, 0.0f, true});
     Dir dirs[4] = {RIGHT, UP, LEFT, DOWN};
     while(!q.empty()) {
         vec2i front = q.front();
@@ -343,7 +343,7 @@ void Grid::calcAngles() {
                     Angle::angleUnion(
                         cells[n.x][n.y].angle->getDef(),
                         Angle::angleIntersection(
-                            getAngle(front.x, front.y, d),
+                            getAngle(front, d, origin),
                             cells[front.x][front.y].angle->getDef()
                             )
                         )

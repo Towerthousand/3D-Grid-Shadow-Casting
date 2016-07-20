@@ -57,7 +57,7 @@ Angle::AngleOverlap Angle::overlapTest(const AngleDef& a, const AngleDef& b) {
 AngleDef Angle::angleUnion(const AngleDef& a, const AngleDef& b) {
     // if any of both are full, union will be full
     if(a.full || b.full)
-        return {{0.0f, 1.0f, 0.0f}, 0.0f, true};
+        return {{0.0f, 0.0f, 0.0f}, 0.0f, true};
     // if one of them is null, return the other
     if(a.halfAngle == 0.0f)
         return b;
@@ -106,7 +106,7 @@ AngleDef Angle::angleUnion(const AngleDef& a, const AngleDef& b) {
     // d is the direction of the union angle
     vec3f d = glm::normalize(dir3 + dir4);
     // if dot(dir1+dir2, d) < 0.0f, the union angle is > 180 deg
-    if(glm::dot(dir1+dir2, d) <= 0.0f) return {{0.0f, 1.0f, 0.0f}, 0.0f, true};
+    if(glm::dot(dir1+dir2, d) <= 0.0f) return {{0.0f, 0.0f, 0.0f}, 0.0f, true};
     // we compute the tangent of the new halfangle by scaling one of the
     // outer vectors by the inverse of it's projection onto the new
     // angle's direction, and computing the length of the vector that
@@ -123,7 +123,7 @@ AngleDef Angle::angleIntersection(const AngleDef& a, const AngleDef& b) {
         return {b.dir, b.halfAngle, b.full};
     // if any of both are null, intersection will be empty
     if(a.halfAngle == 0.0f || b.halfAngle == 0.0f)
-        return {{0.0f, 1.0f, 0.0f}, 0.0f, false};
+        return {{0.0f, 0.0f, 0.0f}, 0.0f, false};
     AngleOverlap acb = INVALID;
     // if a contains b, intersection will equal b
     if(a.halfAngle >= b.halfAngle) {
@@ -139,11 +139,11 @@ AngleDef Angle::angleIntersection(const AngleDef& a, const AngleDef& b) {
             return {a.dir, a.halfAngle, a.full};
         // they don't overlap, return empty
         if(bca == NONE)
-            return {{0.0f, 1.0f, 0.0f}, 0.0f, false};
+            return {{0.0f, 0.0f, 0.0f}, 0.0f, false};
     }
     else if(acb == NONE)
         // if a is bigger than B but does not contain it, return empty
-        return {{0.0f, 1.0f, 0.0f}, 0.0f, false};
+        return {{0.0f, 0.0f, 0.0f}, 0.0f, false};
     // General case. We compute the ends of the intersection
     // by rotating each cone direction towards the other direction
     // by their own half angle. This is done avoiding trigonometry,
@@ -180,7 +180,7 @@ AngleDef Angle::angleIntersection(const AngleDef& a, const AngleDef& b) {
     // this handles the imprecision-caused edge case where an angle is created with
     // a very small tangent
     if(glm::epsilonEqual(tangent, 0.0f, EPSILON))
-        return {{0.0f, 1.0f, 0.0f}, 0.0f, false};
+        return {{0.0f, 0.0f, 0.0f}, 0.0f, false};
     return {d, tangent, false};
 }
 

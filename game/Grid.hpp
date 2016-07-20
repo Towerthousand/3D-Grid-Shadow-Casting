@@ -21,7 +21,7 @@ class Grid : public GameObject {
             DOWN
         };
 
-        AngleDef getAngle(int x, int y, Dir d) const;
+        AngleDef getAngle(vec2i pos, Dir d, vec2i origin) const;
 
         void resetCells();
         void initGridTex();

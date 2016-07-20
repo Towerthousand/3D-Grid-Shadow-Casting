@@ -38,7 +38,7 @@ class Angle : public GameObject {
         float magnitude = 2.0f;
 
     private:
-        AngleDef def = {{0.0f, 1.0f, 0.0f}, M_PI/6.0f, false};
+        AngleDef def = {{0.0f, 0.0f, 0.0f}, M_PI/6.0f, false};
 
         void updateVerts();
         void update(float deltaTime) override;

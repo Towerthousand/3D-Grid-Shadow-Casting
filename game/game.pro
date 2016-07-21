@@ -19,15 +19,13 @@ SOURCES += \
     Scene.cpp \
     Grid.cpp \
     GridOrtho.cpp \
-    Manager.cpp \
-    Angle.cpp
+    Manager.cpp
 
 HEADERS += \
     commons.hpp \
     Scene.hpp \
     Grid.hpp \
     GridOrtho.hpp \
-    Manager.hpp \
-    Angle.hpp
+    Manager.hpp
 
 # OTHER_FILES += \

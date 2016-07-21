@@ -9,7 +9,7 @@ struct AngleDef{
     bool full;
 };
 
-class Angle : public GameObject {
+class AngleObj : public GameObject {
     private:
         enum AngleOverlap {
             INVALID = -1,
@@ -19,8 +19,8 @@ class Angle : public GameObject {
         };
 
     public:
-        Angle();
-        ~Angle();
+        AngleObj();
+        ~AngleObj();
 
         static AngleDef angleUnion(const AngleDef& a, const AngleDef& b);
         static AngleDef angleIntersection(const AngleDef& a, const AngleDef& b);

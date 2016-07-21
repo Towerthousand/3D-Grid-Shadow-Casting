@@ -1,18 +1,12 @@
 #ifndef GRID_HPP
 #define GRID_HPP
 
-#include "Angle.hpp"
+#include "commons.hpp"
 
 class Grid : public GameObject {
     public:
         Grid();
         ~Grid();
-
-    private:
-        struct Cell {
-            bool block = false;
-            Angle* angle = nullptr;
-        };
 
         enum Face {
             MINX = 0,
@@ -23,9 +17,7 @@ class Grid : public GameObject {
             MAXZ,
         };
 
-        AngleDef getAngle(vec3i pos, Face f, vec3i origin) const;
-
-        void resetCells();
+    private:
         void initGridTex();
         void initQuadMesh();
         void initLinesMesh();
@@ -40,7 +32,7 @@ class Grid : public GameObject {
         void update(float deltaTime) override;
         void draw() const override;
 
-        std::vector<std::vector<Cell>> cells;
+        std::vector<std::vector<bool>> blockers;
         Texture2D gridTex;
         mutable MeshIndexed quad;
         mutable Mesh lines;

@@ -3,7 +3,7 @@
 
 #define EPSILON 0.00001f
 
-Angle::Angle() {
+AngleObj::AngleObj() {
     std::vector<Vertex::Attribute> elems = {
         Vertex::Attribute("a_position", Vertex::Attribute::Float, 3)
     };
@@ -14,10 +14,10 @@ Angle::Angle() {
     updateVerts();
 }
 
-Angle::~Angle() {
+AngleObj::~AngleObj() {
 }
 
-Angle::AngleOverlap Angle::overlapTest(const AngleDef& a, const AngleDef& b) {
+AngleObj::AngleOverlap AngleObj::overlapTest(const AngleDef& a, const AngleDef& b) {
     if(a.full) return CONTAINS;
     if(b.full) return NONE;
     vec3f dir1 = b.dir;
@@ -54,7 +54,7 @@ Angle::AngleOverlap Angle::overlapTest(const AngleDef& a, const AngleDef& b) {
     return static_cast<AngleOverlap>(result);
 };
 
-AngleDef Angle::angleUnion(const AngleDef& a, const AngleDef& b) {
+AngleDef AngleObj::angleUnion(const AngleDef& a, const AngleDef& b) {
     // if any of both are full, union will be full
     if(a.full || b.full)
         return {{0.0f, 0.0f, 0.0f}, 0.0f, true};
@@ -114,7 +114,7 @@ AngleDef Angle::angleUnion(const AngleDef& a, const AngleDef& b) {
     return {d, glm::length(d-(dir3/glm::dot(dir3,d))), false};
 }
 
-AngleDef Angle::angleIntersection(const AngleDef& a, const AngleDef& b) {
+AngleDef AngleObj::angleIntersection(const AngleDef& a, const AngleDef& b) {
     // if b is full, intersection will be a
     if(b.full)
         return {a.dir, a.halfAngle, a.full};
@@ -184,7 +184,7 @@ AngleDef Angle::angleIntersection(const AngleDef& a, const AngleDef& b) {
     return {d, tangent, false};
 }
 
-void Angle::set(const AngleDef& newDef) {
+void AngleObj::set(const AngleDef& newDef) {
     def.dir = glm::normalize(newDef.dir);
     VBE_ASSERT(newDef.full || newDef.halfAngle == 0.0f || (!glm::isnan(def.dir).x && !glm::isnan(def.dir).y), "setAngle needs a non-zero dir " << newDef.dir);
     if(newDef.full) {
@@ -200,7 +200,7 @@ void Angle::set(const AngleDef& newDef) {
     updateVerts();
 }
 
-void Angle::updateVerts() {
+void AngleObj::updateVerts() {
     float radHalf = 0.0f;
     if(def.full) radHalf = M_PI;
     else radHalf = glm::atan(def.halfAngle);
@@ -223,13 +223,13 @@ void Angle::updateVerts() {
     triangles.setVertexData(&data[0], data.size());
 }
 
-void Angle::update(float deltaTime) {
+void AngleObj::update(float deltaTime) {
     (void) deltaTime;
     transform = glm::translate(mat4f(1.0f), center);
     transform = glm::scale(transform, vec3f(magnitude));
 }
 
-void Angle::draw() const {
+void AngleObj::draw() const {
     if(!doDraw) return;
     const Camera* cam = (Camera*) getGame()->getObjectByName("mainCamera");
     ProgramManager.get("colored").uniform("u_color")->set(vec4f(color, 1.0f));

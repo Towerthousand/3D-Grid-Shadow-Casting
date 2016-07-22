@@ -24,14 +24,16 @@ struct Angle {
     bool full;
 };
 
-vec3i offsets[6] = {
-    {-1, 0, 0},
-    { 1, 0, 0},
-    { 0,-1, 0},
-    { 0, 1, 0},
-    { 0, 0,-1},
-    { 0, 0, 1}
-};
+namespace {
+    vec3i offsets[6] = {
+        {-1, 0, 0},
+        { 1, 0, 0},
+        { 0,-1, 0},
+        { 0, 1, 0},
+        { 0, 0,-1},
+        { 0, 0, 1}
+    };
+}
 
 AngleOverlap overlapTest(const Angle& a, const Angle& b) {
     if(a.full) return CONTAINS;

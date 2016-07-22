@@ -4,28 +4,33 @@
 
 #define GRIDSIZE 33
 #define BOARD_SCALE 10.0f
-#define EPSILON 0.00001f
+#define EPSILON 0.000001f
 
-vec3i diff2[4] = {
-    { 1,  0, 0},
-    { 0,  1, 0},
-    {-1,  0, 0},
-    { 0, -1, 0}
+namespace {
+    vec3i offsets[6] = {
+        {-1, 0, 0},
+        { 1, 0, 0},
+        { 0,-1, 0},
+        { 0, 1, 0},
+        { 0, 0,-1},
+        { 0, 0, 1}
+    };
+}
+
+struct Square {
+    vec2f p;
+    vec2f d;
 };
+
 
 //pair(float, vector) comp for pqueue
 struct fvpaircomp {
-    bool operator() (const std::pair<float, vec2i>& lhs, const std::pair<float, vec2i>& rhs) const {
+    bool operator() (const std::pair<float, vec3i>& lhs, const std::pair<float, vec3i>& rhs) const {
         return lhs.first>rhs.first;
     };
 };
 
-const Log&operator <<(const Log& log, const Square& s) {
-    log << "Square[Point: " << s.p << ", Dimensions: " << s.d << "]";
-    return log;
-}
-
-Square Square::squareUnion(const Square& s1, const Square& s2) {
+Square squareUnion(const Square& s1, const Square& s2) {
     if(s1.p == vec2f(0.0f) && s1.d == vec2f(0.0f)) return s2;
     else if(s2.p == vec2f(0.0f) && s2.d == vec2f(0.0f)) return s1;
     Square s = {
@@ -43,9 +48,9 @@ Square Square::squareUnion(const Square& s1, const Square& s2) {
     return s;
 };
 
-Square Square::squareIntersection(const Square& s1, const Square& s2) {
-    if((s1.p == vec2f(0.0f) && s1.d == vec2f(0.0f)) ||
-       (s2.p == vec2f(0.0f) && s2.d == vec2f(0.0f)) ||
+Square squareIntersection(const Square& s1, const Square& s2) {
+    if(s1.d == vec2f(0.0f) ||
+       s2.d == vec2f(0.0f) ||
        s1.p.x+s1.d.x <= s2.p.x ||
        s1.p.x >= s2.p.x+s2.d.x ||
        s1.p.y+s1.d.y <= s2.p.y ||
@@ -67,59 +72,52 @@ Square Square::squareIntersection(const Square& s1, const Square& s2) {
     return s;
 };
 
-GridOrtho::GridOrtho() {
-    cells = std::vector<std::vector<Cell>>(GRIDSIZE, std::vector<GridOrtho::Cell>(GRIDSIZE));
-    resetCells();
-    initGridTex();
-    initQuadMesh();
-    initLinesMesh();
-    updateGridTex();
-}
-
-GridOrtho::~GridOrtho() {
-}
-
-mat4f getViewMatrixForDirection(const vec3f& direction) {
+mat3f getViewMatrixForDirection(const vec3f& direction) {
     vec3f dummyUp = (glm::abs(glm::normalize(direction)) == vec3f(0, 1, 0))? vec3f(0,0,1) : vec3f(0, 1, 0);
     vec3f front = glm::normalize(-direction);
     vec3f right = glm::normalize(glm::cross(dummyUp, front));
     vec3f up = glm::normalize(glm::cross(front, right));
     return glm::transpose(
-        mat4f(
-            right.x, right.y, right.z, 0,
-            up.x   , up.y   , up.z   , 0,
-            front.x, front.y, front.z, 0,
-            0      , 0      , 0      , 1
+        mat3f(
+            right.x, right.y, right.z,
+            up.x   , up.y   , up.z   ,
+            front.x, front.y, front.z
         )
     );
 };
 
 // If genMode2D is true, this will calculate the new cones using only
 // two points per face instead of 4, hence simulating a 2D grid case
-Square GridOrtho::getSquare(int x, int y, Dir d) const {
-    vec3f center = vec3f(x, y, 0.0f)+vec3f(0.5f, 0.5f, 0.0f)+vec3f(diff2[d])*0.5f;
+Square getSquare(vec3i pos, GridOrtho::Face f, const mat3f& viewMatrix) {
+    vec3f center = vec3f(pos)+0.5f+vec3f(offsets[f])*0.5f;
     std::vector<vec3f> p(4);
-    switch(d) {
-        case UP:
-        case DOWN:
-            p[0] = center+vec3f( 0.5f, 0.0f, 0.5f);
-            p[1] = center+vec3f(-0.5f, 0.0f, 0.5f);
-            p[2] = center+vec3f( 0.5f, 0.0f,-0.5f);
-            p[3] = center+vec3f(-0.5f, 0.0f,-0.5f);
-            break;
-        case LEFT:
-        case RIGHT:
+    switch(f) {
+        case GridOrtho::MINX:
+        case GridOrtho::MAXX:
             p[0] = center+vec3f( 0.0f, 0.5f, 0.5f);
             p[1] = center+vec3f( 0.0f,-0.5f, 0.5f);
             p[2] = center+vec3f( 0.0f, 0.5f,-0.5f);
             p[3] = center+vec3f( 0.0f,-0.5f,-0.5f);
             break;
+        case GridOrtho::MINY:
+        case GridOrtho::MAXY:
+            p[0] = center+vec3f( 0.5f, 0.0f, 0.5f);
+            p[1] = center+vec3f(-0.5f, 0.0f, 0.5f);
+            p[2] = center+vec3f( 0.5f, 0.0f,-0.5f);
+            p[3] = center+vec3f(-0.5f, 0.0f,-0.5f);
+            break;
+        case GridOrtho::MINZ:
+        case GridOrtho::MAXZ:
+            p[0] = center+vec3f( 0.5f, 0.5f, 0.0f);
+            p[1] = center+vec3f(-0.5f, 0.5f, 0.0f);
+            p[2] = center+vec3f( 0.5f,-0.5f, 0.0f);
+            p[3] = center+vec3f(-0.5f,-0.5f, 0.0f);
+            break;
     }
-    mat4f viewMatrix = getViewMatrixForDirection(sunDir);
     vec2f min = vec2f(std::numeric_limits<float>::max());
     vec2f max = vec2f(std::numeric_limits<float>::lowest());
     for(vec3f& v : p) {
-        v = vec3f(viewMatrix*vec4f(v, 1.0f));
+        v = viewMatrix*v;
         min.x = glm::min(min.x, v.x);
         min.y = glm::min(min.y, v.y);
         max.x = glm::max(max.x, v.x);
@@ -128,10 +126,80 @@ Square GridOrtho::getSquare(int x, int y, Dir d) const {
     return {min, max-min};
 }
 
-void GridOrtho::resetCells() {
-    for(int x = 0; x < GRIDSIZE; ++x)
-        for(int y = 0; y < GRIDSIZE; ++y)
-            cells[x][y].sq = {{0.0f, 0.0f}, {0.0f, 0.0f}};
+Square squares[GRIDSIZE][GRIDSIZE];
+bool vis[GRIDSIZE][GRIDSIZE];
+
+// Main algorithm!
+void GridOrtho::calcSquares() {
+    mat3f viewMatrix = getViewMatrixForDirection(sunDir);
+    memset(squares, 0, sizeof(squares));
+    memset(vis, 0, sizeof(vis));
+    std::priority_queue<std::pair<float, vec3i>, std::vector<std::pair<float, vec3i>>, fvpaircomp> q;
+    std::bitset<6> faces = 0;
+    if(sunDir.x != 0.0f) faces.set(sunDir.x < 0.0f? MAXX : MINX);
+    if(sunDir.y != 0.0f) faces.set(sunDir.y < 0.0f? MAXY : MINY);
+    if(sunDir.z != 0.0f) faces.set(sunDir.z < 0.0f? MAXZ : MINZ);
+    for(int i = 0; i < 6; ++i) {
+        if(!faces.test(i)) continue;
+        vec3i min = {
+            (i == MAXX) ? GRIDSIZE-1 : 0,
+            (i == MAXY) ? GRIDSIZE-1 : 0,
+            (i == MAXZ) ? 0 : 0
+        };
+        vec3i max = {
+            (i == MINX) ? 0 : GRIDSIZE-1,
+            (i == MINY) ? 0 : GRIDSIZE-1,
+            (i == MINZ) ? 0 : 0
+        };
+        for(int x = min.x; x <= max.x; ++x)
+            for(int y = min.y; y <= max.y; ++y)
+                for(int z = min.z; z <= max.z; ++z) {
+                    float len = glm::dot(vec2f(x, y), vec2f(sunDir));
+                    q.push(std::make_pair(len, vec3i(x, y, z)));
+                    if(blockers[x][y]) continue;
+                    squares[x][y] = squareUnion(squares[x][y], getSquare(vec3i(x, y, z), (Face)i, viewMatrix));
+                }
+    }
+    while(!q.empty()) {
+        std::pair<float, vec3i> frontP = q.top();
+        q.pop();
+        vec3i front = frontP.second;
+        if(vis[front.x][front.y]) continue;
+        vis[front.x][front.y] = true;
+        if(squares[front.x][front.y].d == vec2f(0.0f)) continue;
+        for(int i = 0; i < 6; ++i) {
+            vec3i n = front + offsets[i];
+            // Out of bountaries
+            if(n.x < 0 || n.y < 0 || n.x >= GRIDSIZE || n.y >= GRIDSIZE) continue;
+            // This is a blocker
+            if(blockers[n.x][n.y]) continue;
+            // Already visited
+            if(vis[n.x][n.y]) continue;
+            // Update square
+            squares[n.x][n.y] = squareUnion(
+                squares[n.x][n.y],
+                squareIntersection(
+                    getSquare(front, (Face)i, viewMatrix),
+                    squares[front.x][front.y]
+                )
+            );
+            // Push it
+            float len = glm::dot(vec2f(n), vec2f(sunDir));
+            q.push(std::make_pair(len, n));
+        }
+    }
+    updateGridTex();
+}
+
+GridOrtho::GridOrtho() {
+    blockers = std::vector<std::vector<bool>>(GRIDSIZE, std::vector<bool>(GRIDSIZE, false));
+    initGridTex();
+    initQuadMesh();
+    initLinesMesh();
+    updateGridTex();
+}
+
+GridOrtho::~GridOrtho() {
 }
 
 void GridOrtho::initGridTex() {
@@ -207,77 +275,21 @@ vec2i GridOrtho::getMouseCellCoords() const {
 void GridOrtho::toggleBlock() {
     vec2i c = getMouseCellCoords();
     if(c.x < 0 || c.y < 0 || c.x >= GRIDSIZE || c.y >= GRIDSIZE) return;
-    cells[c.x][c.y].block = !cells[c.x][c.y].block;
+    blockers[c.x][c.y] = !blockers[c.x][c.y];
     calcSquares();
-}
-
-// Main algorithm!
-void GridOrtho::calcSquares() {
-    resetCells();
-    std::priority_queue<std::pair<float, vec2i>, std::vector<std::pair<float, vec2i>>, fvpaircomp> q;
-    std::unordered_set<vec2i> inQ;
-    std::vector<std::vector<bool>> vis(GRIDSIZE, std::vector<bool>(GRIDSIZE, false));
-    for(int y = 0; y < GRIDSIZE; ++y) {
-        inQ.insert(vec2i(GRIDSIZE-1, y));
-        float len = glm::dot(vec2f(GRIDSIZE-1, y), vec2f(sunDir));
-        q.push(std::make_pair(len, vec2i(GRIDSIZE-1, y)));
-        cells[GRIDSIZE-1][y].sq = getSquare(GRIDSIZE-1, y, RIGHT);
-    }
-    for(int x = 0; x < GRIDSIZE; ++x) {
-        inQ.insert(vec2i(x, 0));
-        float len = glm::dot(vec2f(x, 0), vec2f(sunDir));
-        q.push(std::make_pair(len, vec2i(x, 0)));
-        cells[x][0].sq = getSquare(x, 0, RIGHT);
-    }
-    Dir dirs[4] = {RIGHT, UP, LEFT, DOWN};
-    while(!q.empty()) {
-        std::pair<float, vec2i> frontP = q.top();
-        vec2i front = frontP.second;
-        vis[front.x][front.y] = true;
-        q.pop();
-        for(Dir d : dirs) {
-            vec2i n = front + vec2i(diff2[d]);
-            // Out of bountaries
-            if(n.x < 0 || n.y < 0 || n.x >= GRIDSIZE || n.y >= GRIDSIZE)
-                continue;
-            // This is a blocker
-            if(cells[n.x][n.y].block)
-                continue;
-            // Already visited
-            if(vis[n.x][n.y])
-                continue;
-            // Have we pushed this to the queue yet?
-            if(inQ.count(n) == 0) {
-                inQ.insert(n);
-                float len = glm::dot(vec2f(n), vec2f(sunDir));
-                q.push(std::make_pair(len, n));
-            }
-            Square frontSquare = getSquare(front.x, front.y, d);
-            Square intersection =  Square::squareIntersection(
-                frontSquare,
-                cells[front.x][front.y].sq
-            );
-            cells[n.x][n.y].sq = Square::squareUnion(
-                cells[n.x][n.y].sq,
-                intersection
-            );
-        }
-    }
-    updateGridTex();
 }
 
 void GridOrtho::updateGridTex() {
     std::vector<char> pixels(GRIDSIZE*GRIDSIZE*4, 0);
     for(int x = 0; x < GRIDSIZE; ++x) {
         for(int y = 0; y < GRIDSIZE; ++y) {
-            Cell& c = cells[x][y];
-            if(c.block) {
+            if(blockers[x][y]) {
                 // Blockers painted gray
                 pixels[x*4+y*GRIDSIZE*4  ] = 15;
                 pixels[x*4+y*GRIDSIZE*4+1] = 15;
                 pixels[x*4+y*GRIDSIZE*4+2] = 15;
             }
-            else if(c.sq.d.x > 0.0f || c.sq.d.y > 0.0f) {
+            else if(squares[x][y].d.x > 0.0f || squares[x][y].d.y > 0.0f) {
                 // Visible painted green
                 pixels[x*4+y*GRIDSIZE*4  ] = 5;
                 pixels[x*4+y*GRIDSIZE*4+1] = 20;

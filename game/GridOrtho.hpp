@@ -3,36 +3,21 @@
 
 #include "commons.hpp"
 
-struct Square {
-    static Square squareUnion(const Square& s1, const Square& s2);
-    static Square squareIntersection(const Square& s1, const Square& s2);
-    vec2f p;
-    vec2f d;
-};
-
-const Log&operator << (const Log& log, const Square& s);
-
 class GridOrtho : public GameObject {
     public:
         GridOrtho();
         ~GridOrtho();
 
+        enum Face {
+            MINX = 0,
+            MAXX,
+            MINY,
+            MAXY,
+            MINZ,
+            MAXZ,
+        };
+
     private:
-        struct Cell {
-            bool block = false;
-            Square sq;
-        };
-
-        enum Dir {
-            RIGHT = 0,
-            UP,
-            LEFT,
-            DOWN
-        };
-
-        Square getSquare(int x, int y, Dir d) const;
-
-        void resetCells();
         void initGridTex();
         void initQuadMesh();
         void initLinesMesh();
@@ -47,7 +32,7 @@ class GridOrtho : public GameObject {
         void update(float deltaTime) override;
         void draw() const override;
 
-        std::vector<std::vector<Cell>> cells;
+        std::vector<std::vector<bool>> blockers;
         Texture2D gridTex;
         mutable MeshIndexed quad;
         mutable Mesh lines;
